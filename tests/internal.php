@@ -1,15 +1,10 @@
 <?php
-/**
- * Phase 7：社内用報告書（4-1〜4-8）と、業務フロー ⑥完了（請求済）の確認。
- */
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
 
-
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0001', 'password' => 'pass1234']);
 
-// 社内用がまだ無い報告書を使う（提出済みの内容が写るところを見たい）
 $row = Database::one(
     "SELECT r.* FROM reports r
       WHERE r.account_id = 1 AND r.deleted_at IS NULL
@@ -18,7 +13,6 @@ $row = Database::one(
       ORDER BY r.report_no DESC LIMIT 1"
 );
 if (!$row) {
-    // 全件に社内用がある場合は1件消してから試す
     $row = Database::one(
         "SELECT r.* FROM reports r
           WHERE r.account_id = 1 AND EXISTS (SELECT 1 FROM report_parts p WHERE p.report_id = r.id AND p.qty > 0)
@@ -31,7 +25,6 @@ if (!$row) {
 $id = (int) $row['id'];
 echo "対象 No.{$row['report_no']} / {$row['hospital_name']}（id={$id}）\n";
 
-// ---------------------------------------------------------------- 入口と初期値
 echo "--- 入口：客先提出済の内容が写るか（4-1） ---\n";
 $r = req('GET', "/report/{$id}/internal");
 check('入口から 4-1 へ進む', str_contains($r['location'], "/report/{$id}/internal/basic"));
@@ -55,7 +48,6 @@ check('数量も写る',
     (int) Database::value('SELECT SUM(qty) FROM internal_report_parts WHERE internal_report_id = ?', [$in['id']])
     === (int) Database::value('SELECT SUM(qty) FROM report_parts WHERE report_id = ? AND qty > 0', [$id]));
 
-// 二度開いても増えない
 req('GET', "/report/{$id}/internal");
 check('二度開いても1枚のまま',
     (int) Database::value('SELECT COUNT(*) FROM internal_reports WHERE report_id = ?', [$id]) === 1);
@@ -68,7 +60,6 @@ foreach (['1 基本情報', '2 今回作業時の残作業', '3 再手配の必�
 }
 check('客先の内容を写した旨を出している', str_contains($body, '客先へ提出した報告書の内容'));
 
-// ---------------------------------------------------------------- 4-1
 echo "--- 4-1 基本情報（全て必須） ---\n";
 $r = req('POST', "/report/{$id}/internal/basic", [
     '_csrf' => csrf("/report/{$id}/internal/basic"),
@@ -90,7 +81,6 @@ check('社内用だけ直せる（客先提出用は変わらない）',
         === '4階 中央無菌室（社内用に補記）'
     && Database::value('SELECT work_place FROM reports WHERE id = ?', [$id]) === $row['work_place']);
 
-// ---------------------------------------------------------------- 4-2
 echo "--- 4-2 今回作業時の残作業 ---\n";
 $r = req('POST', "/report/{$id}/internal/remain", [
     '_csrf' => csrf("/report/{$id}/internal/remain"),
@@ -102,12 +92,10 @@ check('残作業が保存される', str_contains(
     (string) Database::value('SELECT remaining_work FROM internal_reports WHERE report_id = ?', [$id]),
     'HEPAフィルター'));
 
-// ---------------------------------------------------------------- 4-3
 echo "--- 4-3 再手配の必要な部材 ---\n";
 $body = req('GET', "/report/{$id}/internal/parts")['body'];
 check('初期値が「再手配する部材」として並ぶ', str_contains($body, '再手配する部材'));
 
-// まだ入っていない部材を1点足し、入っている1点を外す → 点数は変わらないはず
 $extra = Database::one(
     'SELECT id, name FROM parts
       WHERE deleted_at IS NULL
@@ -145,7 +133,6 @@ $r = req('POST', "/report/{$id}/internal/parts",
     ['_csrf' => csrf("/report/{$id}/internal/parts"), 'next' => '1']);
 check('つぎへで 4-4 に進む', str_contains($r['location'], "/report/{$id}/internal/hours"));
 
-// ---------------------------------------------------------------- 4-4
 echo "--- 4-4 移動および作業時間 ---\n";
 $body = req('GET', "/report/{$id}/internal/hours")['body'];
 check('移動時間…I／作業時間…S の表記がある', str_contains($body, '移動時間・・・I'));
@@ -189,7 +176,6 @@ check('往復の合計を出せる',
 check('画面に合計が出る', str_contains(
     req('GET', "/report/{$id}/internal/hours")['body'], '3時間'));
 
-// ---------------------------------------------------------------- 4-5
 echo "--- 4-5 営業アプローチ・備考 ---\n";
 $r = req('POST', "/report/{$id}/internal/sales", [
     '_csrf' => csrf("/report/{$id}/internal/sales"),
@@ -203,7 +189,6 @@ check('営業アプローチと備考が保存される',
     str_contains((string) $in['sales_approach'], '空調更新')
     && str_contains((string) $in['remarks'], '入室許可申請'));
 
-// ---------------------------------------------------------------- 4-7 用紙
 echo "--- 4-7 社内用のA4に載る項目 ---\n";
 $sheet = req('GET', "/report/{$id}/internal/sheet");
 check('用紙が返る', $sheet['status'] === 200, strlen($sheet['body']) . 'B');
@@ -258,7 +243,6 @@ check('data/pdf に保存され、ファイル名が記録される',
 check('?dl=1 なら保存の指定（attachment）',
     (bool) preg_match('/^content-disposition:\s*attachment/mi', req('GET', "/report/{$id}/internal/pdf?dl=1")['head']));
 
-// ---------------------------------------------------------------- 4-6 完了
 echo "--- 4-6 完了（請求済）＝ 概要書5の ⑥ ---\n";
 $r = req('GET', "/report/{$id}/internal/confirm");
 check('PDF確認画面が出る', $r['status'] === 200 && str_contains($r['body'], 'PDF確認画面'));
@@ -292,14 +276,12 @@ check('紙に完了（請求済）の印が出る',
 check('完了後もPDF確認画面で状態が分かる',
     str_contains(req('GET', "/report/{$id}/internal/confirm")['body'], '完了（請求済）'));
 
-// ---------------------------------------------------------------- 導線
 echo "--- 導線（概要書5の①〜⑧が繋がるか） ---\n";
 check('完了画面の「社内用報告書へ」が有効',
     str_contains(req('GET', "/report/{$id}/done")['body'], "href=\"/report/{$id}/internal\""));
 check('一覧の「社内用 ●」がリンクになっている',
     str_contains(req('GET', '/reports')['body'], "/report/{$id}/internal\""));
 
-// ---------------------------------------------------------------- 他社
 echo "--- 他社の社内用は触れないか ---\n";
 @unlink($JAR);
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0002', 'password' => 'pass1234']);
@@ -310,7 +292,6 @@ foreach (['', '/basic', '/parts', '/hours', '/confirm', '/sheet', '/preview'] as
 check('他社は完了操作もできない',
     req('POST', "/report/{$id}/internal/complete", ['_csrf' => csrf('/reports')])['status'] === 404);
 
-// ---------------------------------------------------------------- 警告
 echo "--- 警告の有無 ---\n";
 @unlink($JAR);
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0001', 'password' => 'pass1234']);

@@ -1,12 +1,7 @@
 <?php
-/**
- * Phase 5：完了・プレビュー・印刷・メール送信の確認。
- * A4の紙が「概要書の項目を全部載せているか」を実際のHTMLで確かめる。
- */
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
-
 
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0001', 'password' => 'pass1234']);
 
@@ -20,7 +15,6 @@ $row = Database::one(
 $id  = (int) $row['id'];
 echo "対象 No.{$row['report_no']} / {$row['hospital_name']}（id={$id}）\n";
 
-// ---------------------------------------------------------------- 2-7
 echo "--- 2-7 完了画面 ---\n";
 $r = req('GET', "/report/{$id}/done");
 check('表示される', $r['status'] === 200);
@@ -34,7 +28,6 @@ check('4つのナビがすべて有効（もどる・ダッシュボード・一
     && str_contains($r['body'], 'href="/reports"')
     && str_contains($r['body'], "href=\"/report/{$id}/internal\""));
 
-// ---------------------------------------------------------------- A4の中身
 echo "--- A4の用紙に概要書の項目が載っているか（2-8 の記載項目） ---\n";
 $sheet = req('GET', "/report/{$id}/sheet");
 check('用紙が返る', $sheet['status'] === 200, strlen($sheet['body']) . 'B');
@@ -62,7 +55,6 @@ foreach ($want as $label => $needle) {
     check("{$label} が載っている", $needle !== '' && str_contains($body, $needle));
 }
 
-// 明細が実際に出ているか
 $parts = Database::all('SELECT part_name, qty, unit FROM report_parts WHERE report_id = ? AND qty > 0', [$id]);
 $okParts = true;
 foreach ($parts as $p) {
@@ -99,7 +91,6 @@ check('用紙CSSに A4 と @page がある',
     str_contains($css, 'size: A4 portrait') && str_contains($css, '@media print'));
 check('mm単位で組んでいる', str_contains($css, '210mm') && str_contains($css, '297mm'));
 
-// ---------------------------------------------------------------- 文字の詰め具合
 echo "--- 文字量に応じた自動縮小（概要書 2-8「文字を小さくしても良い」） ---\n";
 preg_match('/class="sheet (d[123])"/', $body, $m);
 $before = $m[1] ?? '?';
@@ -107,7 +98,6 @@ check('詰め具合の指定が付く', in_array($before, ['d1', 'd2', 'd3'], tr
 
 $keep = (string) $row['report_body'];
 
-// 中くらいに増やす → 一段詰まる
 Database::run('UPDATE reports SET report_body = ? WHERE id = ?', [
     str_repeat("報告事項の分量がふえた場合の挙動を確認するための行です。\n", 14), $id,
 ]);
@@ -115,7 +105,6 @@ preg_match('/class="sheet (d[123])"/', req('GET', "/report/{$id}/sheet")['body']
 $mid = $m2[1] ?? '?';
 check("分量がふえると一段詰まる（{$before} → {$mid}）", $mid === 'd2');
 
-// 用紙に載りきらない量まで増やす → いちばん詰める
 Database::run('UPDATE reports SET report_body = ? WHERE id = ?', [
     str_repeat("報告事項をとても長く書いた場合に、1枚に収めるため文字を小さくします。\n", 30), $id,
 ]);
@@ -125,17 +114,14 @@ check("さらに多いと最小になる（{$mid} → {$heavy}）", $heavy === '
 
 Database::run('UPDATE reports SET report_body = ? WHERE id = ?', [$keep, $id]);
 
-// ---------------------------------------------------------------- サイン
 echo "--- サインが紙に載るか ---\n";
 $hasSign = !empty($row['signature_at']);
 if (!$hasSign) {
-    // 署名なしの報告書ではサイン欄が空欄のままであることを見る
     check('サイン未入力なら空欄のまま', !str_contains($body, '/signature.png'));
 } else {
     check('サイン画像が紙に入る', str_contains($body, '/signature.png'));
 }
 
-// ---------------------------------------------------------------- 2-8 / 2-9
 echo "--- 2-8 プレビュー / 2-9 印刷 ---\n";
 $r = req('GET', "/report/{$id}/preview");
 check('プレビューが用紙をiframeで読む',
@@ -152,7 +138,6 @@ check('print=1 のとき印刷ダイアログを呼ぶ', str_contains($r['body']
 $r = req('GET', "/report/{$id}/sheet");
 check('通常表示では呼ばない', !str_contains($r['body'], 'window.print()'));
 
-// ---------------------------------------------------------------- 一覧のPDF●
 echo "--- 一覧の「PDF ●」の元になる記録 ---\n";
 $fresh = Database::one('SELECT id FROM reports WHERE pdf_at IS NULL ORDER BY id LIMIT 1');
 if ($fresh) {
@@ -164,7 +149,6 @@ if ($fresh) {
         Database::value('SELECT pdf_at FROM reports WHERE id = ?', [$id]) !== null);
 }
 
-// ---------------------------------------------------------------- PDF
 echo "--- 本物のPDF（保存・添付に使うもの） ---\n";
 $pdfDir = (string) config('storage.pdf');
 $r = req('GET', "/report/{$id}/pdf");
@@ -182,7 +166,6 @@ check('保存したファイルと返した内容が同じ', file_get_contents($
 $r = req('GET', "/report/{$id}/pdf?dl=1");
 check('?dl=1 なら保存の指定（attachment）', (bool) preg_match('/^content-disposition:\s*attachment/mi', $r['head']));
 
-// 分量がとても多いときも1ページに収まる
 Database::run('UPDATE reports SET report_body = ? WHERE id = ?', [
     str_repeat("報告事項をとても長く書いた場合に、1枚に収めるため文字を小さくします。\n", 30), $id,
 ]);
@@ -191,7 +174,6 @@ check('報告事項が非常に多くても1ページ',
     substr_count($heavyPdf, '/Type /Page') - substr_count($heavyPdf, '/Type /Pages') === 1);
 Database::run('UPDATE reports SET report_body = ? WHERE id = ?', [$keep, $id]);
 
-// ---------------------------------------------------------------- 2-10
 echo "--- 2-10 メール送信 ---\n";
 $r = req('GET', "/report/{$id}/mail");
 check('画面が出る', $r['status'] === 200);
@@ -200,7 +182,6 @@ check('報告書を横に並べている', str_contains($r['body'], "src=\"/repo
 check('添付されるPDFを開ける', str_contains($r['body'], "href=\"/report/{$id}/pdf\""));
 check('件名にもマイク入力が付く', (bool) preg_match('/name="subject"[^>]*data-mic="1"/s', $r['body']));
 
-// 送信履歴があるものは前回の文面を引き継ぐ。たたき台は履歴のない報告書で見る
 $virgin = Database::one(
     'SELECT r.id FROM reports r
       WHERE r.account_id = 1 AND r.deleted_at IS NULL
@@ -217,7 +198,6 @@ check('履歴があれば前回の文面を引き継ぐ',
 $before = (int) Database::value('SELECT mail_count FROM reports WHERE id = ?', [$id]);
 $logs   = (int) Database::value('SELECT COUNT(*) FROM mail_logs WHERE report_id = ?', [$id]);
 
-// 形式チェック
 $r = req('POST', "/report/{$id}/mail", [
     '_csrf'   => csrf("/report/{$id}/mail"),
     'to'      => 'これはメールアドレスではない',
@@ -238,7 +218,6 @@ check('CCの形式チェックも効く',
 check('エラー時は送信回数が増えない',
     (int) Database::value('SELECT mail_count FROM reports WHERE id = ?', [$id]) === $before);
 
-// 正常送信
 $r = req('POST', "/report/{$id}/mail", [
     '_csrf'   => csrf("/report/{$id}/mail"),
     'to'      => 'setsubi@example-hospital.jp',
@@ -271,7 +250,6 @@ if ($emls) {
         && str_contains($eml, 'Content-Type: application/pdf')
         && str_contains($eml, "filename*=UTF-8''" . rawurlencode('作業完了報告書_No' . $row['report_no'] . '.pdf')));
     check('.eml の添付を戻すと残したPDFと一致する', (function () use ($eml, $pdfDir, $last) {
-        // 添付パートのヘッダの終わり（空行）から、閉じ boundary の手前までが base64
         $start = strpos($eml, 'Content-Type: application/pdf');
         $start = $start === false ? false : strpos($eml, "\r\n\r\n", $start);
         $end   = $start === false ? false : strpos($eml, "\r\n--", $start);
@@ -287,7 +265,6 @@ if ($emls) {
 check('次に開くと前回の宛先が入っている',
     str_contains(req('GET', "/report/{$id}/mail")['body'], 'setsubi@example-hospital.jp'));
 
-// ---------------------------------------------------------------- 他社
 echo "--- 他社の報告書は出力できないか ---\n";
 @unlink($JAR);
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0002', 'password' => 'pass1234']);
@@ -295,7 +272,6 @@ foreach (['sheet', 'pdf', 'preview', 'print', 'mail', 'done'] as $p) {
     check("/{$p} は404", req('GET', "/report/{$id}/{$p}")['status'] === 404);
 }
 
-// ---------------------------------------------------------------- 警告
 echo "--- 警告の有無 ---\n";
 @unlink($JAR);
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0001', 'password' => 'pass1234']);

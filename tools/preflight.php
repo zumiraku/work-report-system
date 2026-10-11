@@ -1,12 +1,4 @@
 <?php
-/**
- * 本番へ上げる前の確認。
- *
- *   php tools/preflight.php
- *
- * さくらのサーバへ置いたあと、SSHで一度これを流すと
- * 「置き場所」「書き込み権限」「接続」「設定の消し忘れ」をまとめて見られる。
- */
 declare(strict_types=1);
 
 if (PHP_SAPI !== 'cli') {
@@ -36,8 +28,6 @@ version_compare(PHP_VERSION, '8.0', '>=')
     : line('ng', 'PHPのバージョンが古い', PHP_VERSION . '（8.0以上が必要）');
 
 $driver = (string) config('db_driver');
-// zlib はPDFの圧縮とフォント埋め込み、gd はサイン画像をPDFに載せるとき、zip は Excel の読み書き、
-// dom/xmlreader は Excel の中身を読むときに使う
 $needed = ['mbstring', 'json', 'session', 'pcre', 'zlib', 'gd', 'zip', 'dom', 'xmlreader'];
 $needed[] = $driver === 'mysql' ? 'pdo_mysql' : 'pdo_sqlite';
 

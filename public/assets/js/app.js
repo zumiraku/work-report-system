@@ -1,12 +1,6 @@
-/* ============================================================
-   ユーザーサイト共通のちょっとした動き。
-   フレームワークは使わない。JavaScript が止まっていても
-   画面の入力・送信自体は成立するように作ってある。
-   ============================================================ */
 (function () {
   'use strict';
 
-  /* ---------- [-] 0 [+] の数量ボタン ---------- */
   document.addEventListener('click', function (ev) {
     var btn = ev.target.closest ? ev.target.closest('[data-step]') : null;
     if (!btn) return;
@@ -26,7 +20,6 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
-  /* 手入力されたときも範囲に収める */
   document.addEventListener('blur', function (ev) {
     var input = ev.target;
     if (!input.classList || !input.classList.contains('counter__value')) return;
@@ -36,7 +29,6 @@
     input.value = isNaN(n) ? min : Math.max(min, Math.min(max, n));
   }, true);
 
-  /* ---------- 作業日の曜日表示（概要書 2-1-3） ---------- */
   var DOW = ['日', '月', '火', '水', '木', '金', '土'];
   function renderDow(input) {
     var target = document.getElementById(input.dataset.dow);
@@ -54,7 +46,6 @@
     input.addEventListener('input', function () { renderDow(input); });
   });
 
-  /* ---------- 2-5 チェックが全部つくまで作業者を触らせない ---------- */
   var checklist = document.getElementById('js-checklist');
   if (checklist) {
     var picker = document.querySelector('.picker');
@@ -79,9 +70,6 @@
     syncLock();
   }
 
-  /* ---------- 新規作成のとき、端末側で固有キーを発行する ----------
-     この値をサーバーに渡しておくと、送信が重なっても報告書が
-     二重に作られない（同じキーなら1件にまとめる）。 */
   function newUuid() {
     if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
     return Date.now().toString(16) + '-' + Math.random().toString(16).slice(2, 10);
@@ -95,7 +83,6 @@
     });
   }
 
-  /* 一覧の「複製」も同じ考え方。二度押しても報告書が2件できないようにする */
   Array.prototype.forEach.call(document.querySelectorAll('form[data-copy]'), function (form) {
     var field = form.querySelector('input[name="client_uuid"]');
     if (field && !field.value) { field.value = newUuid(); }
@@ -105,7 +92,4 @@
       if (btn) { btn.disabled = true; }
     });
   });
-
-  /* 名簿は出しっぱなしなので、選んだ結果を別の欄に映す必要はない。
-     押した名前がそのまま色で分かるようにしてある（CSS側） */
 }());

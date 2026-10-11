@@ -1,23 +1,13 @@
 <?php
-/**
- * 認証。
- * 概要書 1-1「3回エラーでパスワードロック。解除は事務局で行う」に対応する。
- */
+// ログイン。「ID/パスワードを保持」はパスワードを持たせず、
+// 使い捨ての自動ログイン用トークン（selector + validator のハッシュ）を Cookie に置く方式。
+// 使うたび作り替えるので、古いトークンを拾われても通らない。
 declare(strict_types=1);
 
 final class Auth
 {
-    /** 自動ログイン用Cookieの名前と有効期間 */
     private const REMEMBER_COOKIE = ['user' => 'wcr_keep', 'admin' => 'wcr_keep_admin'];
     private const REMEMBER_DAYS   = 90;
-
-    // ---------------- 「ユーザーID,パスワードを保持」 ----------------
-    //
-    // 概要書 1-1/K-1 の要望。ただしパスワードそのものを端末に残すと、
-    // タブレットを紛失したときに他の病院の報告書まで見られてしまう。
-    // そこで「その端末だけで使える使い捨ての合鍵」をCookieに置き、
-    // 使うたびに合鍵を作り替える方式にした。利用者から見た動きは
-    //「次に開いたときログイン済み」で、要望どおりになる。
 
     private static function issueRemember(string $kind, int $actorId): void
     {
@@ -50,9 +40,6 @@ final class Auth
         ]);
     }
 
-    /**
-     * ログイン画面を開いたときに呼ぶ。合鍵が有効なら、そのままログインさせる。
-     */
     public static function tryRemember(string $kind): bool
     {
         $raw = $_COOKIE[self::REMEMBER_COOKIE[$kind]] ?? '';
@@ -83,7 +70,6 @@ final class Auth
             return false;
         }
 
-        // 合鍵を作り替える（使い回しを防ぐ）
         $next    = bin2hex(random_bytes(24));
         $expires = time() + self::REMEMBER_DAYS * 86400;
         Database::update('remember_tokens', [
@@ -107,7 +93,6 @@ final class Auth
         return true;
     }
 
-    /** この端末の合鍵を捨てる */
     private static function forgetRemember(string $kind): void
     {
         $raw = $_COOKIE[self::REMEMBER_COOKIE[$kind]] ?? '';
@@ -121,7 +106,6 @@ final class Auth
         unset($_COOKIE[self::REMEMBER_COOKIE[$kind]]);
     }
 
-    /** ロック時など、そのアカウントの合鍵をすべて無効にする */
     private static function revokeAllRemember(string $kind, int $actorId): void
     {
         Database::run(
@@ -129,8 +113,6 @@ final class Auth
             [$kind, $actorId]
         );
     }
-
-    // ---------------- 利用者（協力会社） ----------------
 
     public static function user(): ?array
     {
@@ -150,15 +132,10 @@ final class Auth
         return $user;
     }
 
-    /**
-     * @return array{ok:bool, error?:string}
-     */
     public static function attemptUser(string $loginId, string $password, bool $remember = false): array
     {
         $result = self::evaluateUser($loginId, $password, $remember);
 
-        // ロック中に正しいパスワードを入れた場合も「失敗」として残す。
-        // 記録上の成功と、実際にログインできたかを一致させておく
         Database::insert('login_attempts', [
             'login_kind' => 'user',
             'account_id' => $loginId,
@@ -204,7 +181,6 @@ final class Auth
             ], 'id = :id', ['id' => $account['id']]);
 
             if ($lock) {
-                // ロックしたら、その会社の全端末の合鍵も無効にする
                 self::revokeAllRemember('user', (int) $account['id']);
                 audit('login_locked', 'accounts:' . $account['account_id']);
                 return [
@@ -240,15 +216,6 @@ final class Auth
         return ['ok' => true];
     }
 
-    /**
-     * ロックを時間で自動解除する。
-     *
-     * 本番（さくら）では auto_unlock_minutes = 0 なので何もしない。
-     * 概要書 1-1「解除は事務局で行う」のとおり、事務局の操作でのみ解ける。
-     *
-     * オンラインのデモだけ 5分で自動解除にしてある。打ち間違いが3回続いたときに
-     * デモそのものが開けなくなってしまうため。
-     */
     private static function autoUnlock(array $account): array
     {
         $minutes = (int) config('auto_unlock_minutes', 0);
@@ -275,8 +242,6 @@ final class Auth
 
         return $account;
     }
-
-    // ---------------- 管理者（事務局） ----------------
 
     public static function admin(): ?array
     {

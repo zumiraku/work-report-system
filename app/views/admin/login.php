@@ -1,11 +1,6 @@
 <?php
-/**
- * K-1 管理者ログイン画面（URL: /admin/login）
- * @var string|null $error @var string $loginId
- */
 ?>
 <?php
-  // デモ用の設置では、打ち間違いを防ぐため最初から入れておく
   $isDemo   = (bool) config('demo');
   $demoId   = $isDemo ? 'admin' : '';
   $demoPass = $isDemo ? 'admin1234' : '';

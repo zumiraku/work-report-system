@@ -1,11 +1,4 @@
 <?php
-/**
- * 画面下の ◀もどる ／ ▶つぎへ。
- * フォームの中に置いて submit として動かす（押した時点で必ず保存される）。
- *
- * @var bool|null $showBack
- * @var string|null $nextLabel
- */
 $showBack  = $showBack ?? true;
 $nextLabel = $nextLabel ?? 'つぎへ';
 ?>

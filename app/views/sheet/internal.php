@@ -1,24 +1,12 @@
 <?php
-/**
- * 社内用報告書 A4 1枚（概要書 4-7 のプレビュー画像を再現）
- *
- * 客先提出用（sheet/report.php）とは中身が違う。
- *   上段：今回作業時の残作業 ／ 再手配の必要な部材（数量つき）
- *   中段：移動及び作業時間の推移 ／ 客先への営業アプローチ
- *   下段：備考（社内への報告事項等）
- *
- * @var array $report @var array $internal @var array $parts @var bool $forPrint
- */
 $in = $internal;
 
-/* 再手配の部材は、概要書の様式に合わせて9行分の枠を用意する */
 $partRows = max(9, count($parts));
 
 $moveOut  = InternalReport::spanMinutes($in['travel_out_from'], $in['travel_out_to']);
 $moveBack = InternalReport::spanMinutes($in['travel_back_from'], $in['travel_back_to']);
 $work     = InternalReport::spanMinutes($in['work_from'], $in['work_to']);
 
-/* 載る量に応じて詰め具合を決める（客先提出用と同じ考え方） */
 $weight = count($parts)
     + mb_strlen((string) $in['remaining_work']) / 34
     + mb_strlen((string) $in['sales_approach']) / 34

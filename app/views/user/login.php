@@ -1,8 +1,4 @@
 <?php
-/**
- * 1-1 ログイン画面（URL: /login）
- * @var string|null $error @var string $loginId
- */
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -23,7 +19,6 @@
   <main class="app-main">
 
 <?php
-      // デモ用の設置（Vercel）では、打ち間違いを防ぐため最初から入れておく
       $isDemo   = (bool) config('demo');
       $demoId   = $isDemo ? 'ABCDE0001' : '';
       $demoPass = $isDemo ? 'pass1234' : '';
@@ -79,8 +74,7 @@
 </div>
 
 <script>
-// 「保持」にチェックしていた端末では、次回ユーザーIDを入れ直さなくて済むようにする。
-// パスワードは端末に保存しない（サーバーが発行した使い捨ての合鍵で自動ログインする）
+// 次回ユーザーIDだけ入れておく。パスワードは端末に残さない
 (function () {
   var KEY = 'wcr.lastLoginId';
   var id = document.getElementById('login_id');

@@ -1,11 +1,4 @@
 <?php
-/**
- * ユーザーサイト共通レイアウト（タブレット 768 x 1024 / 高さはスクロール）
- * @var string $content
- * @var string|null $title
- * @var bool|null $showSync    同期ステータスバーを出すか（Phase 4）
- * @var string|null $navHtml   画面下の もどる／つぎへ
- */
 $title    = $title ?? config('app_name');
 $showSync = $showSync ?? false;
 $navHtml  = $navHtml ?? '';

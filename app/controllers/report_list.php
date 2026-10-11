@@ -1,16 +1,6 @@
 <?php
-/**
- * 3 報告書一覧_画面
- *
- * ダッシュボードの「一覧表（コピーして作成、修正、プレビュー）」がここ。
- *   病院名をタップ → 基本情報登録_画面（修正）
- *   PDF ●         → プレビュー
- *   社内用 ●      → 社内用報告書（Phase 7）
- *   複製          → コピーして新しい下書きを作る
- */
 declare(strict_types=1);
 
-/** 並べ替えを許す列だけを持つ。ここに無い値が来たら既定に戻す */
 const REPORT_LIST_SORTS = [
     'no'       => ['column' => 'r.report_no',     'label' => 'No.'],
     'work'     => ['column' => 'r.work_date',     'label' => '作業日'],
@@ -64,7 +54,6 @@ function report_list(): void
     ], 'layout_user');
 }
 
-/** 一覧の「複製」。写した下書きの基本情報画面へ送る */
 function report_copy(): void
 {
     $user = Auth::requireUser();

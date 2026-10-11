@@ -1,13 +1,8 @@
 <?php
-/**
- * 報告書（客先提出用）の読み書き。
- * 2-1〜2-6 のウィザードから共通で使う。
- */
 declare(strict_types=1);
 
 final class Report
 {
-    /** ウィザードの並び順。step_nav とルートの両方がこれを見る */
     public const STEPS = [
         'basic'   => ['no' => 1, 'label' => '基本情報'],
         'work'    => ['no' => 2, 'label' => '作業内容'],
@@ -16,13 +11,9 @@ final class Report
         'confirm' => ['no' => 5, 'label' => '確認・署名'],
     ];
 
-    /** 測定値の初期行数（概要書 2-4 は5行） */
     public const MEASURE_ROWS = 5;
     public const MEASURE_MAX  = 20;
 
-    /**
-     * 自分の会社の報告書だけを返す。他社のIDを直接叩かれても見せない。
-     */
     public static function findOwned(int $id, array $user): array
     {
         $report = Database::one(
@@ -36,11 +27,6 @@ final class Report
         return $report;
     }
 
-    /**
-     * 下書きを作る。
-     * $clientUuid はタブレット側が発行した固有キー。同じキーで二度呼ばれても
-     * 新しい報告書は作らず、既にあるものを返す（二重登録防止）。
-     */
     public static function createDraft(array $user, ?string $clientUuid = null): int
     {
         $uuid = self::normalizeUuid($clientUuid);
@@ -56,7 +42,6 @@ final class Report
         return Database::transaction(function () use ($user, $uuid) {
             $reportId = null;
 
-            // report_no は表示用の連番。同時に押されても衝突しないよう数回リトライする
             for ($try = 0; $try < 5; $try++) {
                 try {
                     $reportId = Database::insert('reports', [
@@ -79,8 +64,6 @@ final class Report
                 }
             }
 
-            // 2-2 の機種一覧と 2-4 の測定値の枠を、下書き作成時に用意しておく。
-            // こうすると「対象外は削除する」の削除が、そのまま次回も残る
             $order = 0;
             foreach (Database::all(
                 'SELECT id, name FROM machine_models WHERE deleted_at IS NULL ORDER BY sort_order, id'
@@ -105,14 +88,6 @@ final class Report
         });
     }
 
-    /**
-     * 既にある報告書を写して新しい下書きを作る。
-     * ダッシュボードの「一覧表（コピーして作成、修正、プレビュー）」の
-     * コピーにあたる。同じ病院を毎回ゼロから打ち直さなくて済む。
-     *
-     * 写すのは入力内容だけ。サイン・担当者・提出やメールの記録は引き継がない
-     * （それは前回の作業の事実なので、新しい報告書に付いてくるとまずい）。
-     */
     public static function copyFrom(array $user, int $sourceId, ?string $clientUuid = null): int
     {
         $source = self::findOwned($sourceId, $user);
@@ -170,8 +145,6 @@ final class Report
                 Database::insert('report_parts', ['report_id' => $newId] + $row);
             }
 
-            // 測定値は枠と型式まで写し、実測値（積算時間・製造No.）は空にする。
-            // 前回の数字が残ったまま提出されるのを防ぐため
             foreach (Database::all(
                 'SELECT room_name, model_name, sort_order FROM report_measurements WHERE report_id = ? ORDER BY sort_order',
                 [$src]
@@ -192,9 +165,6 @@ final class Report
     private static function normalizeUuid(?string $uuid): string
     {
         $uuid = trim((string) $uuid);
-        // 端末が発行したキーは、長さと文字種だけを見て受け取る。
-        // 形を厳しく決めすぎると、端末の実装が少し違うだけで
-        // 二重登録防止そのものが効かなくなるため。
         if (preg_match('/^[0-9A-Za-z_-]{8,64}$/', $uuid)) {
             return strtolower($uuid);
         }
@@ -205,7 +175,6 @@ final class Report
         );
     }
 
-    /** 保存した印を残す。Phase 4 の同期バッジがこの2列を見る */
     public static function touch(int $reportId, array $extra = []): void
     {
         Database::update('reports', $extra + [
@@ -215,9 +184,6 @@ final class Report
         ], 'id = :id', ['id' => $reportId]);
     }
 
-    // ------------------------------------------------------------ 作業者
-
-    /** 2-1 の作業者（複数選択＋自由入力）を保存する */
     public static function saveWorkers(int $reportId, array $workerIds, string $freeText): string
     {
         $names = [];
@@ -232,8 +198,6 @@ final class Report
                 $names[] = ['id' => (int) $r['id'], 'name' => $r['name']];
             }
         }
-        // 区切りは読点とカンマ、改行だけにする。
-        // 空白で切ると「山田 太郎」が2人になってしまうため
         foreach (preg_split('/[,、\r\n]+/u', $freeText, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $name) {
             $name = trim($name);
             if ($name !== '') {
@@ -255,7 +219,6 @@ final class Report
         return implode('、', array_column($names, 'name'));
     }
 
-    /** @return array{ids:int[], free:string} */
     public static function loadWorkers(int $reportId): array
     {
         $rows = Database::all(
@@ -274,11 +237,6 @@ final class Report
         return ['ids' => $ids, 'free' => implode('、', $free)];
     }
 
-    // ------------------------------------------------------------ 進捗
-
-    /**
-     * どのステップまで入力できているか。step_nav の色分けに使う。
-     */
     public static function progress(array $report): array
     {
         $id = (int) $report['id'];
@@ -310,10 +268,6 @@ final class Report
         ];
     }
 
-    /**
-     * 報告書1枚を組むのに必要な明細を全部まとめて返す。
-     * プレビュー・印刷・メール・PDFがすべてこれを使う。
-     */
     public static function sheetData(array $report): array
     {
         $id = (int) $report['id'];
@@ -344,13 +298,8 @@ final class Report
         ];
     }
 
-    /**
-     * 用紙に載る量から、文字の詰め具合を決める。
-     *
-     * 概要書 2-8「測定値、報告事項の文字列が長いので工夫が必要。
-     * 文字を小さくしても良いと思います」への対応。
-     * 少ないときは大きく、多いときは自動で小さくして1枚に収める。
-     */
+    // 載る量で文字の詰め具合を決めて1枚に収める。
+    // 概要書 2-8 の「文字を小さくしても良い」への対応。
     public static function sheetDensity(array $data): string
     {
         $r = $data['report'];
@@ -363,15 +312,14 @@ final class Report
             + mb_strlen((string) $r['parts_note']) / 38;
 
         if ($weight <= 20) {
-            return 'd1';   // ゆったり
+            return 'd1';
         }
         if ($weight <= 32) {
-            return 'd2';   // ふつう
+            return 'd2';
         }
-        return 'd3';       // 詰める
+        return 'd3';
     }
 
-    /** 2-4 の型式プルダウン。「作業内容のリストと同じ」（概要書 2-4-2） */
     public static function modelOptions(int $reportId): array
     {
         $names = array_column(Database::all(

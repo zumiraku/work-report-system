@@ -1,10 +1,4 @@
 <?php
-/**
- * 2-10 メール送信_画面
- * 概要書のとおり、左に報告書、右に送信内容を並べる。
- *
- * @var array $report @var array $form @var array $errors @var bool $sent
- */
 $id = (int) $report['id'];
 ?>
 <!DOCTYPE html>

@@ -1,14 +1,6 @@
 <?php
-/**
- * 4-1〜4-8 社内用報告書
- *
- * 客先提出用（2-1〜2-10）と同じ作りにしてある。
- *   「つぎへ」「もどる」で必ず保存 → リダイレクトしてから表示
- *   4-6 の「完了」でステータスを完了（請求済）にし、一覧へ戻る
- */
 declare(strict_types=1);
 
-// 入力の共通処理（report_action / report_is_date / report_clamp_int）を借りる
 require_once APP_ROOT . '/app/controllers/report.php';
 
 const INTERNAL_FLOW = ['basic', 'remain', 'parts', 'hours', 'sales'];
@@ -18,7 +10,6 @@ function internal_url(int $reportId, string $step): string
     return "/report/{$reportId}/internal/{$step}";
 }
 
-/** 報告書と社内用をまとめて取り出す。無ければ提出済みの内容から作る */
 function internal_load(array $params): array
 {
     $user   = Auth::requireUser();
@@ -40,7 +31,6 @@ function internal_move(int $reportId, string $current, int $dir): void
     redirect(internal_url($reportId, $next));
 }
 
-/** オフライン層に行き先を渡す（客先提出用と同じ仕組み） */
 function internal_form_attrs(array $report, string $step): string
 {
     $id   = (int) $report['id'];
@@ -61,14 +51,11 @@ function internal_form_attrs(array $report, string $step): string
     );
 }
 
-/** 入口。完了画面や一覧の「社内用」から来る */
 function internal_entry(array $p): void
 {
     [, $report] = internal_load($p);
     redirect(internal_url((int) $report['id'], 'basic'));
 }
-
-// ================================================================ 4-1 基本情報
 
 function internal_basic(array $p): void
 {
@@ -94,7 +81,6 @@ function internal_basic(array $p): void
         }
 
         if ($action === 'next') {
-            // 概要書 4-1「全て必須項目」
             $labels = [
                 'created_date'  => '作成日',
                 'hospital_name' => '病院名',
@@ -135,8 +121,6 @@ function internal_basic(array $p): void
     ]);
 }
 
-// ================================================================ 4-2 残作業
-
 function internal_remain(array $p): void
 {
     [, $report, $internal] = internal_load($p);
@@ -154,8 +138,6 @@ function internal_remain(array $p): void
         'title' => '社内用 今回作業時の残作業',
     ]);
 }
-
-// ================================================================ 4-3 再手配の必要な部材
 
 function internal_parts(array $p): void
 {
@@ -177,7 +159,6 @@ function internal_parts(array $p): void
         internal_move($id, 'parts', $action === 'back' ? -1 : 1);
     }
 
-    // 選んだ部材（数量あり）は常に上に固定する
     $selected = Database::all(
         'SELECT ip.*, p.kana, p.priority
            FROM internal_report_parts ip
@@ -250,8 +231,6 @@ function internal_save_parts(int $internalId, array $qty): void
     }
 }
 
-// ================================================================ 4-4 移動および作業時間
-
 function internal_hours(array $p): void
 {
     [, $report, $internal] = internal_load($p);
@@ -287,7 +266,6 @@ function internal_hours(array $p): void
             $data[$f] = $value ?: null;
         }
 
-        // 片方だけ入っている区間は、そのままだと時間が出せないので知らせる
         if ($action === 'next' && !$errors) {
             foreach (InternalReport::SPANS as $span => $meta) {
                 $from = $form[$span . '_from'];
@@ -311,8 +289,6 @@ function internal_hours(array $p): void
     ]);
 }
 
-// ================================================================ 4-5 営業アプローチ・備考
-
 function internal_sales(array $p): void
 {
     [, $report, $internal] = internal_load($p);
@@ -332,8 +308,6 @@ function internal_sales(array $p): void
     ]);
 }
 
-// ================================================================ 4-6 PDF確認
-
 function internal_confirm(array $p): void
 {
     [, $report, $internal] = internal_load($p);
@@ -346,10 +320,6 @@ function internal_confirm(array $p): void
     ], 'layout_user');
 }
 
-/**
- * 「完了」。概要書 5 の ⑥「ステータスを完了（請求済）にする」がここ。
- * 一覧の「状態」が「完」になる。
- */
 function internal_complete(array $p): void
 {
     [, $report, $internal] = internal_load($p);
@@ -370,13 +340,10 @@ function internal_complete(array $p): void
     redirect('/reports');
 }
 
-// ================================================================ 4-7 / 4-8 用紙
-
 function internal_sheet(array $p): void
 {
     [, $report, $internal] = internal_load($p);
 
-    // 一覧の「社内用 ●」は、社内用の紙が起こされたかどうかで決まる
     if (!$internal['pdf_at']) {
         InternalReport::touch((int) $internal['id'], ['pdf_at' => now()]);
         $internal['pdf_at'] = now();
@@ -388,10 +355,6 @@ function internal_sheet(array $p): void
     ]);
 }
 
-/**
- * 社内用の本物のPDF。/report/{id}/internal/pdf（?dl=1 で保存）
- * 作るたびに data/pdf/internal_{No}.pdf を最新の内容で書き換える。
- */
 function internal_pdf(array $p): void
 {
     [, $report, $internal] = internal_load($p);
@@ -430,9 +393,6 @@ function internal_print(array $p): void
     ]);
 }
 
-// ================================================================ 共通
-
-/** ステップ表示に必要なものを足してから描く */
 function internal_view(string $template, array $report, array $internal, string $step, array $data): void
 {
     view($template, $data + [

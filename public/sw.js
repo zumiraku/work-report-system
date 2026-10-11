@@ -1,16 +1,11 @@
-/* ============================================================
-   Service Worker
-   病院の機械室や地下で電波が切れても、画面が開いて入力を続けられるようにする。
+/*
+  機械室や地下で電波が切れても画面が開くように。
+  部品(CSS/JS)はキャッシュ優先、画面(HTML)は通信優先でだめならキャッシュ。
+  POST は絶対にキャッシュしない。タブレットは共用なのでログアウト時に全部捨てる。
+*/
 
-   考え方
-     - CSS/JS などの部品はキャッシュを先に見る（速い・確実）
-     - 画面（HTML）は通信を先に試し、だめならキャッシュを出す
-     - POST は絶対にキャッシュしない。送信は offline.js が端末に溜める
-     - タブレットは会社で共用するので、ログアウト時にキャッシュを全部捨てる
-   ============================================================ */
-
-/* 登録時の URL（/sw.js?v=…）の版がそのままキャッシュ名になる。
-   部品を直すと版が変わり、古いキャッシュは activate で捨てられる */
+/* 登録URL（/sw.js?v=…）の版がそのままキャッシュ名になる。
+   部品を直すと版が変わり、古いほうは activate で捨てられる */
 var CACHE = 'wcr-' + (function () {
   var m = /[?&]v=([0-9a-z]+)/.exec(self.location.search || '');
   return m ? m[1] : 'v2';
@@ -26,7 +21,6 @@ var SHELL = [
   '/offline.html'
 ];
 
-/* キャッシュしない画面（ログイン周りと管理者サイト） */
 function isPrivate(url) {
   return url.pathname === '/login'
       || url.pathname === '/logout'
@@ -55,13 +49,11 @@ self.addEventListener('activate', function (ev) {
 self.addEventListener('fetch', function (ev) {
   var req = ev.request;
 
-  /* 送信系はそのまま通す。失敗したら offline.js が受け止める */
   if (req.method !== 'GET') return;
 
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  /* 画面（HTML）: 通信優先 → だめならキャッシュ → それでもだめならお知らせ */
   if (req.mode === 'navigate') {
     ev.respondWith(
       fetch(req)
@@ -81,7 +73,6 @@ self.addEventListener('fetch', function (ev) {
     return;
   }
 
-  /* 部品（CSS/JS/画像）: キャッシュ優先。?v= の違いは無視して探す */
   ev.respondWith(
     caches.match(req, { ignoreSearch: true }).then(function (hit) {
       if (hit) return hit;
@@ -96,7 +87,6 @@ self.addEventListener('fetch', function (ev) {
   );
 });
 
-/* ログアウト時などにキャッシュを捨てる */
 self.addEventListener('message', function (ev) {
   if (!ev.data || ev.data.type !== 'clear') return;
   ev.waitUntil(

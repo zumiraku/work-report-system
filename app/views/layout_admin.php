@@ -1,11 +1,4 @@
 <?php
-/**
- * 管理者サイト共通レイアウト（PC 1600 x 900）
- * @var string $content
- * @var string|null $title
- * @var string|null $nav    現在のタブ（dashboard|users|parts|models|texts|checks）
- * @var bool|null $bare     ログイン画面などナビ無しで出す場合
- */
 $title = $title ?? '管理者';
 $nav   = $nav ?? '';
 $bare  = $bare ?? false;

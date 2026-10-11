@@ -1,5 +1,4 @@
 <?php
-/** @var int $status @var string $message @var string $detail */
 ?>
 <!DOCTYPE html>
 <html lang="ja">

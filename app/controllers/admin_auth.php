@@ -1,8 +1,4 @@
 <?php
-/**
- * K-1 管理者ログイン / ログアウト
- * K-2 のダッシュボードは Phase 8 で作るので、ここでは受け皿だけ用意する。
- */
 declare(strict_types=1);
 
 function admin_login_page(): void

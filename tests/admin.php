@@ -1,14 +1,8 @@
 <?php
-/**
- * Phase 8：管理者サイト K-1〜K-8。
- * とくに K-4 の CSV 入出力と、部品名を鍵にした差分反映を重点的に見る。
- */
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
 
-
-// ================================================================ K-1
 echo "--- K-1 ログインと入口 ---\n";
 check('未ログインの /admin/dashboard は弾かれる',
     str_contains(req('GET', '/admin/dashboard')['location'], '/admin/login'));
@@ -16,7 +10,6 @@ $r = req('POST', '/admin/login',
     ['_csrf' => csrf('/admin/login'), 'login_id' => 'admin', 'password' => 'admin1234']);
 check('ログインできる', str_contains($r['location'], '/admin/dashboard'));
 
-// ================================================================ K-2
 echo "--- K-2 ダッシュボード ---\n";
 $r = req('GET', '/admin/dashboard');
 check('表示される', $r['status'] === 200);
@@ -95,7 +88,6 @@ if ($noInternal) {
         && req('GET', '/admin/report/' . $noInternal['id'] . '/internal-pdf')['status'] === 404);
 }
 
-// ================================================================ K-3
 echo "--- K-3 ユーザー登録 ---\n";
 $r = req('GET', '/admin/users');
 check('表示される', $r['status'] === 200);
@@ -174,11 +166,9 @@ check('作業者を空にすると隠れる（過去の記録は残す）',
     && (int) Database::value('SELECT COUNT(*) FROM workers WHERE account_id = ?',
         [$newAcc['id']]) === 2);
 
-// 後片付け
 Database::run('DELETE FROM workers WHERE account_id = ?', [$newAcc['id']]);
 Database::run('DELETE FROM accounts WHERE id = ?', [$newAcc['id']]);
 
-// ================================================================ K-4
 echo "--- K-4 交換部品マスタ ---\n";
 $r = req('GET', '/admin/parts');
 check('表示される', $r['status'] === 200);
@@ -237,7 +227,6 @@ check('拡張子だけ .xlsx の壊れたファイルを弾く',
     str_contains(req('GET', '/admin/parts')['body'], 'Excelのファイルとして読めませんでした'));
 
 echo "--- K-4 インポート：差分の確認 ---\n";
-// ダウンロードしたCSVを少しだけ直す（1件変更・1件追加・1件削除）
 $rows = array_slice($lines, 1);
 $firstName = str_getcsv($rows[0])[0];
 $rows[0]   = implode(',', ['"' . $firstName . '"', '"ヘンコウズミ"', '枚', '999999']);
@@ -254,7 +243,6 @@ check('CSVでも追加1件と出る', (bool) preg_match('/diff-box--add">\s*<b>1
 req('POST', '/admin/parts/import/cancel', ['_csrf' => csrf('/admin/parts')]);
 check('キャンセルで確認が消える', !str_contains(req('GET', '/admin/parts')['body'], '取り込む内容の確認'));
 
-// 同じ直しを Excel（.xlsx）で。ダウンロードした .xlsx を読み、直して書き戻す
 $xlEdit = array_slice($xlRows, 1);
 $xlEdit[0] = [$firstName, 'ヘンコウズミ', '枚', 999999];
 array_pop($xlEdit);
@@ -274,7 +262,6 @@ check('この時点ではDBを触っていない',
     && Database::value('SELECT kana FROM parts WHERE name = ?', [$firstName]) !== 'ヘンコウズミ');
 
 echo "--- K-4 インポート：実行 ---\n";
-// 過去の報告書からの紐付けが壊れないことを確かめるため、いまの part_id を控える
 $linked = Database::one(
     'SELECT rp.report_id, rp.part_id, p.name FROM report_parts rp
        JOIN parts p ON p.id = rp.part_id LIMIT 1');
@@ -332,7 +319,6 @@ req('POST', '/admin/parts/delete', ['_csrf' => csrf('/admin/parts'), 'id' => $pa
 check('削除は隠すだけ',
     Database::value('SELECT deleted_at FROM parts WHERE id = ?', [$part['id']]) !== null);
 
-// ================================================================ K-5
 echo "--- K-5 機種名マスタ ---\n";
 $r = req('GET', '/admin/models');
 check('表示される', $r['status'] === 200);
@@ -375,7 +361,6 @@ req('POST', '/admin/models/delete',
 check('削除は隠すだけ',
     Database::value('SELECT deleted_at FROM machine_models WHERE id = ?', [$model['id']]) !== null);
 
-// ================================================================ K-6
 echo "--- K-6 報告事項マスタ ---\n";
 $r = req('GET', '/admin/texts');
 check('表示される', $r['status'] === 200);
@@ -409,7 +394,6 @@ req('POST', '/admin/texts/delete',
 check('削除は隠すだけ',
     Database::value('SELECT deleted_at FROM report_texts WHERE id = ?', [$text['id']]) !== null);
 
-// ================================================================ K-8
 echo "--- K-8 確認事項マスタ（2-5 のチェック欄） ---\n";
 $r = req('GET', '/admin/checks');
 check('表示される', $r['status'] === 200 && str_contains($r['body'], '確認事項マスタ'));
@@ -437,7 +421,6 @@ check('同じ文言は弾く', (function () {
     return str_contains(req('GET', '/admin/checks?new=1')['body'], 'すでにあります');
 })());
 
-// 現場の 2-5 に出るか（利用者として見る）
 $adminJar = (string) file_get_contents($JAR);
 @unlink($JAR);
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0001', 'password' => 'pass1234']);
@@ -466,7 +449,6 @@ check('使わない文言は現場の画面から消える',
     !str_contains(req('GET', "/report/{$rep['id']}/confirm")['body'], '試験で直した確認事項'));
 file_put_contents($JAR, $adminJar);
 
-// ================================================================ K-7
 echo "--- K-7 管理者情報 ---\n";
 $r = req('GET', '/admin/profile');
 check('表示される', $r['status'] === 200 && str_contains($r['body'], '報告書の受信メールアドレス'));
@@ -491,7 +473,6 @@ check('パスワード空欄なら変えずに保存できる',
         === 'jimu@example.co.jp'
     && Database::value('SELECT password_hash FROM admins WHERE account_id = ?', ['admin']) === $hashBefore);
 
-// ================================================================ 権限
 echo "--- 利用者が管理者サイトに入れないか ---\n";
 @unlink($JAR);
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0001', 'password' => 'pass1234']);
@@ -504,7 +485,6 @@ check('管理者用のPDF経路も入れない',
     str_contains(req('GET', '/admin/report/' . $target['id'] . '/sheet')['location'], '/admin/login')
     && str_contains(req('GET', '/admin/report/' . $target['id'] . '/pdf')['location'], '/admin/login'));
 
-// ================================================================ 警告
 echo "--- 警告の有無 ---\n";
 @unlink($JAR);
 req('POST', '/admin/login',

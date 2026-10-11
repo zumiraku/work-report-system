@@ -1,16 +1,6 @@
 <?php
-/**
- * 2-1〜2-6 報告書作成ウィザード
- *
- * 全画面に共通のきまり
- *   - 「つぎへ」「もどる」「検索」など、画面を離れる操作は必ず先に保存する。
- *     概要書「画面の入力情報は…前画面等に移動しても入力情報が無くならいようにする」への対応。
- *   - 保存に成功したらリダイレクトしてから表示する（戻るボタンで二重送信にならない）。
- *   - 入力エラーのときだけ、その場で打った値のまま描き直す。
- */
 declare(strict_types=1);
 
-/** ウィザードの並び。もどる／つぎへの行き先を1か所で決める */
 const REPORT_FLOW = ['basic', 'work', 'parts', 'measure', 'confirm'];
 
 function report_step_url(int $id, string $step): string
@@ -18,7 +8,6 @@ function report_step_url(int $id, string $step): string
     return "/report/{$id}/{$step}";
 }
 
-/** $dir = 1 で次、-1 で前。端に来たらダッシュボード／完了画面へ */
 function report_move(int $id, string $current, int $dir): void
 {
     $i = array_search($current, REPORT_FLOW, true);
@@ -30,11 +19,6 @@ function report_move(int $id, string $current, int $dir): void
     redirect(report_step_url($id, $next));
 }
 
-/**
- * オフライン層（offline.js）に、この画面の行き先を教えるための属性。
- * 「つぎへ」「もどる」の遷移先をサーバー側で決めているので、
- * 同じ判断をJavaScript側に書き写す必要がない。
- */
 function report_form_attrs(array $report, string $step): string
 {
     $id   = (int) $report['id'];
@@ -57,7 +41,6 @@ function report_form_attrs(array $report, string $step): string
     );
 }
 
-/** POST のボタン名から、どこへ行きたいのかを読む */
 function report_action(): string
 {
     foreach (['next', 'back', 'search', 'sort', 'add_row', 'add_model', 'insert_texts'] as $a) {
@@ -71,20 +54,15 @@ function report_action(): string
     return 'save';
 }
 
-// ================================================================ 新規作成
-
 function report_new(): void
 {
     $user = Auth::requireUser();
 
-    // client_uuid はタブレット側が発行する。同じ値で二度届いても1件にまとめる
     $uuid = (string) (post('client_uuid') ?? query('uuid') ?? '');
     $id   = Report::createDraft($user, $uuid);
 
     redirect(report_step_url($id, 'basic'));
 }
-
-// ================================================================ 2-1 基本情報
 
 function report_basic(array $p): void
 {
@@ -118,7 +96,6 @@ function report_basic(array $p): void
             'worker_free'   => trim((string) post('worker_free', '')),
         ];
 
-        // 「つぎへ」のときだけ必須チェック。もどるは書きかけでも保存して戻す
         if ($action === 'next') {
             $errors = report_validate_basic($form);
         }
@@ -155,7 +132,6 @@ function report_basic(array $p): void
 function report_validate_basic(array $f): array
 {
     $e = [];
-    // 概要書 2-1「全て必須項目」
     if ($f['created_date'] === '') {
         $e['created_date'] = '作成日を入れてください。';
     } elseif (!report_is_date($f['created_date'])) {
@@ -190,8 +166,6 @@ function report_is_date(string $v): bool
     return $d !== false && $d->format('Y-m-d') === $v;
 }
 
-// ================================================================ 2-2 作業内容
-
 function report_work(array $p): void
 {
     $user   = Auth::requireUser();
@@ -202,7 +176,6 @@ function report_work(array $p): void
         csrf_check();
         $action = report_action();
 
-        // 台数と任意入力を保存
         foreach ((array) post('qty', []) as $rowId => $qty) {
             Database::run(
                 'UPDATE report_models SET qty = ? WHERE id = ? AND report_id = ?',
@@ -212,7 +185,6 @@ function report_work(array $p): void
         Report::touch($id, ['work_note' => mb_substr(trim((string) post('work_note', '')), 0, 2000)]);
 
         if ($action === 'delete') {
-            // 概要書「対象外は削除する」。この報告書の一覧から外すだけで、機種名マスタは触らない
             Database::run(
                 'DELETE FROM report_models WHERE id = ? AND report_id = ?',
                 [(int) post('delete_id'), $id]
@@ -246,7 +218,6 @@ function report_work(array $p): void
     ], 'layout_user');
 }
 
-/** 一度削除した機種を戻す */
 function report_add_model(int $reportId, int $modelId): void
 {
     $model = Database::one(
@@ -273,8 +244,6 @@ function report_add_model(int $reportId, int $modelId): void
     ]);
 }
 
-// ================================================================ 2-3 交換部品
-
 function report_parts(array $p): void
 {
     $user   = Auth::requireUser();
@@ -294,7 +263,6 @@ function report_parts(array $p): void
 
         if ($action === 'search' || $action === 'sort') {
             if ($action === 'sort') {
-                // ソートボタンは50音順とよく使う順の切り替え
                 $sort = $sort === 'kana' ? 'priority' : 'kana';
             }
             redirect(report_step_url($id, 'parts') . '?' . http_build_query(['q' => $q, 'sort' => $sort]));
@@ -303,8 +271,6 @@ function report_parts(array $p): void
         report_move($id, 'parts', $action === 'back' ? -1 : 1);
     }
 
-    // 選択済み（数量が入っているもの）は検索結果と別に、常に上に出す。
-    // 検索し直すたびに選んだものが見えなくなるのを避ける
     $selected = Database::all(
         'SELECT rp.*, p.kana, p.priority
            FROM report_parts rp
@@ -347,7 +313,6 @@ function report_parts(array $p): void
     ], 'layout_user');
 }
 
-/** 画面に出ていた部品だけを対象に、数量を入れ直す */
 function report_save_part_quantities(int $reportId, array $qty): void
 {
     $ids = array_values(array_filter(array_map('intval', array_keys($qty)), fn($i) => $i > 0));
@@ -386,8 +351,6 @@ function report_save_part_quantities(int $reportId, array $qty): void
     }
 }
 
-// ================================================================ 2-4 測定値・報告事項
-
 function report_measure(array $p): void
 {
     $user   = Auth::requireUser();
@@ -403,7 +366,6 @@ function report_measure(array $p): void
         $body   = mb_substr(trim((string) post('report_body', '')), 0, 4000);
 
         if ($action === 'insert_texts') {
-            // 報告事項テーブルから選んだ定型文を、今の本文の後ろに足す
             $ids = array_map('intval', (array) post('text_ids', []));
             if ($ids) {
                 $ph   = implode(',', array_fill(0, count($ids), '?'));
@@ -431,7 +393,7 @@ function report_measure(array $p): void
         if (!$errors) {
             report_move($id, 'measure', $action === 'back' ? -1 : 1);
         }
-        $report = Report::findOwned($id, $user);   // 保存後の値で描き直す
+        $report = Report::findOwned($id, $user);
     }
 
     view('user/report_measure', [
@@ -457,10 +419,6 @@ function report_measure(array $p): void
     ], 'layout_user');
 }
 
-/**
- * 測定値の保存。
- * 積算時間は0〜10万、製造No.は6桁（概要書 2-4-3 / 2-4-4）。
- */
 function report_save_measurements(int $reportId, array $rows, bool $strict): array
 {
     $errors = [];
@@ -532,8 +490,7 @@ function report_add_measure_row(int $reportId): void
     ]);
 }
 
-// ================================================================ 2-5 確認署名
-
+// 2-5。確認事項に全部チェックが入るまで作業者を確定させない
 function report_confirm(array $p): void
 {
     $user   = Auth::requireUser();
@@ -564,7 +521,6 @@ function report_confirm(array $p): void
             array_map('intval', (array) post('checked', [])), $requiredIds
         ));
 
-        // 作業者テーブルから選んだ場合と、直接入力した場合の両方を受ける
         $pickId = (int) post('worker_pick', 0);
         $free   = trim((string) post('submitter_free', ''));
         $picked = '';
@@ -577,8 +533,6 @@ function report_confirm(array $p): void
 
         $allChecked = count($form['checked']) === count($requiredIds);
 
-        // 概要書 2-5-3「5つのチェック全てに印がつかないと作業者の入力ができなくする」。
-        // 画面側でも押せないようにしているが、直接送られた場合はここで落とす
         if (!$allChecked && $form['submitter'] !== '') {
             $form['submitter'] = '';
             $errors['submitter_name'] = '確認事項すべてにチェックを入れてから、作業者を入力してください。';
@@ -612,7 +566,6 @@ function report_confirm(array $p): void
         $report = Report::findOwned($id, $user);
     }
 
-    // 選んだ作業者がテーブルにいる名前なら、ラジオを選択済みにして描き直す
     $form['submitter_id'] = 0;
     $form['submitter_free'] = $form['submitter'];
     foreach ($workers as $w) {
@@ -635,8 +588,6 @@ function report_confirm(array $p): void
     ], 'layout_user');
 }
 
-// ================================================================ 2-6 サイン入力
-
 function report_sign(array $p): void
 {
     $user   = Auth::requireUser();
@@ -658,7 +609,6 @@ function report_sign(array $p): void
             $name = sprintf('sign_%d_%s.png', $id, date('YmdHis'));
             file_put_contents($dir . '/' . $name, $png);
 
-            // 前のサインが残っていたら消す
             if ($report['signature_file'] && is_file($dir . '/' . $report['signature_file'])) {
                 unlink($dir . '/' . $report['signature_file']);
             }
@@ -679,10 +629,6 @@ function report_sign(array $p): void
     ]);
 }
 
-/**
- * canvas から届いた data URL を PNG のバイナリに戻す。
- * 画像として読めないもの、大きすぎるものは受け取らない。
- */
 function report_decode_signature(string $dataUrl): ?string
 {
     if (!preg_match('#^data:image/png;base64,([A-Za-z0-9+/=]+)$#', $dataUrl, $m)) {
@@ -699,7 +645,6 @@ function report_decode_signature(string $dataUrl): ?string
     return $png;
 }
 
-/** サイン画像は data/ の中にあるので、ログイン確認を通してから配信する */
 function report_signature_image(array $p): void
 {
     $user   = Auth::requireUser();
@@ -732,8 +677,6 @@ function report_delete_signature(array $p): void
 
     redirect(report_step_url((int) $report['id'], 'confirm'));
 }
-
-// ================================================================ 共通
 
 function report_clamp_int($value, int $min, int $max): int
 {

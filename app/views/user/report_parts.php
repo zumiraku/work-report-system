@@ -1,13 +1,4 @@
 <?php
-/**
- * 2-3 交換部品登録_画面
- * 部品は1万点あるので全部は出さない。「50音ソート」と「文字検索」で絞る。
- * 選んだ部品は検索し直しても消えないよう、上に固定して表示する。
- *
- * @var array $report @var array $selected @var array $selectedIds @var array $results
- * @var int $total @var int $limit @var string $q @var string $sort
- * @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/step_nav.php';
 ?>
 

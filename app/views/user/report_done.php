@@ -1,8 +1,4 @@
 <?php
-/**
- * 2-7 完了_画面
- * @var array $report @var int $mailCount
- */
 $id        = (int) $report['id'];
 $submitted = !empty($report['submitted_at']);
 ?>

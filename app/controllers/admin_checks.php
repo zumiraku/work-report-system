@@ -1,18 +1,12 @@
 <?php
-/**
- * K-8 確認事項マスタ
- *
- * 2-5 確認・署名画面の「☐ 確認事項」の文言を事務局が直せる画面。
- * 概要書では確認事項の 3〜5 が未定だったため、後から増やしたり文言を変えたりできるようにしている。
- *
- * 過去の報告書は checklist_items.id をカンマ区切りで持っている（reports.checked_ids）ので、
- * 行は消さず「使わない」に切り替えるだけにする。これなら昔の報告書の記録が崩れない。
- */
+// K-8 確認事項マスタ。2-5 のチェック欄の文言をここで直す。
+// 過去の報告書は checklist_items.id を持っている（reports.checked_ids）ので、
+// 行は消さず is_active を落とすだけにしてある。
 declare(strict_types=1);
 
 require_once APP_ROOT . '/app/controllers/admin_common.php';
-require_once APP_ROOT . '/app/controllers/admin_parts.php';     // お知らせ表示を借りる
-require_once APP_ROOT . '/app/controllers/admin_masters.php';   // ダイアログの作りを借りる
+require_once APP_ROOT . '/app/controllers/admin_parts.php';
+require_once APP_ROOT . '/app/controllers/admin_masters.php';
 
 const ADMIN_CHECK_SORTS = [
     'no'      => 'id',
@@ -51,7 +45,7 @@ function admin_check_dialog(): ?array
 {
     $dialog = admin_simple_dialog('checklist_items', 'admin_check_form', ['label', 'sort_order', 'is_active']);
     if ($dialog && $dialog['mode'] === 'new' && $dialog['is_active'] === '') {
-        $dialog['is_active'] = 1;   // 追加するものは最初から使う
+        $dialog['is_active'] = 1;
     }
     return $dialog;
 }
@@ -110,7 +104,6 @@ function admin_checks_save(): void
     redirect('/admin/checks');
 }
 
-/** 「削除」は使わない状態にするだけ。過去の報告書のチェック記録を保つため */
 function admin_checks_delete(): void
 {
     Auth::requireAdmin();

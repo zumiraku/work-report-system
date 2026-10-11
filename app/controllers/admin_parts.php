@@ -1,20 +1,10 @@
 <?php
-/**
- * K-4 交換部品マスター 登録画面 ／ 詳細修正ダイアログ ／ ダウンロード・インポート
- *
- * 概要書は「インポートで、修正したファイルをDBに書き込む（書き込む前にDBをクリア）」
- * となっているが、そのまま作ると
- *   ・ファイルを間違えた瞬間に1万件が消える
- *   ・採番が変わり、過去の報告書から部品への紐付けが外れる
- * ため、次のようにしている。
- *   1. 取り込む前に、いまのマスタを自動でバックアップする
- *   2. 部品名をキーに「追加・変更・削除」の差分を出して見せる
- *   3. 中身を確認してから実行。実行はトランザクションで、失敗したら丸ごと元に戻す
- *   4. 削除は印を付けて隠すだけ。過去の報告書の記録は残る
- *
- * ファイル形式は Excel（.xlsx）が基本。CSV（UTF-8 BOM付き）でも受け取れる。
- * .xlsx の読み書きは app/lib/Xlsx.php（zip 拡張だけで動く。外部ライブラリ不要）。
- */
+// K-4 交換部品マスタ。
+//
+// 概要書は「インポートで書き込む前にDBをクリア」となっていたが、そのまま作ると
+// ファイルを1つ間違えた瞬間に1万件消えるし、採番が変わって過去の報告書との紐付けも切れる。
+// なので 取込前に自動バックアップ → 部品名をキーに差分を見せる → 確認してから実行、
+// という流れにしてある。消すほうも削除ではなく非表示。
 declare(strict_types=1);
 
 require_once APP_ROOT . '/app/controllers/admin_common.php';
@@ -29,8 +19,6 @@ const ADMIN_PART_SORTS = [
 ];
 
 const ADMIN_PART_COLUMNS = ['部品名', 'ヨミガナ', '単位', '優先順位'];
-
-// ================================================================ 一覧
 
 function admin_parts(): void
 {
@@ -68,10 +56,6 @@ function admin_parts(): void
     ], 'layout_admin');
 }
 
-/**
- * 取り込みの結果を1回だけ出す。
- * エラーは見せたら消す。確認待ち（ok）は実行かキャンセルまで残す。
- */
 function admin_take_part_diff(): ?array
 {
     $diff = $_SESSION['admin_part_diff'] ?? null;
@@ -114,8 +98,6 @@ function admin_part_dialog(): ?array
         'errors'   => [],
     ];
 }
-
-// ================================================================ 1件の登録・削除
 
 function admin_parts_save(): void
 {
@@ -183,15 +165,12 @@ function admin_parts_delete(): void
     $id   = (int) post('id', 0);
     $part = Database::one('SELECT * FROM parts WHERE id = ?', [$id]);
     if ($part) {
-        // 過去の報告書から辿れるよう、消さずに隠す
         Database::update('parts', ['deleted_at' => now(), 'updated_at' => now()],
             'id = :id', ['id' => $id]);
         audit('admin_part_deleted', 'parts:' . $part['name']);
     }
     redirect('/admin/parts');
 }
-
-// ================================================================ ダウンロード
 
 function admin_parts_download(): void
 {
@@ -219,7 +198,6 @@ function admin_parts_download(): void
     exit;
 }
 
-/** エクセルでそのまま開けるよう、UTF-8のBOMを付けて送る */
 function admin_send_csv(string $filename, array $header, array $rows): void
 {
     header('Content-Type: text/csv; charset=UTF-8');
@@ -235,9 +213,6 @@ function admin_send_csv(string $filename, array $header, array $rows): void
     exit;
 }
 
-// ================================================================ インポート
-
-/** 手順1：ファイルを受け取り、差分を出して見せる */
 function admin_parts_import(): void
 {
     Auth::requireAdmin();
@@ -266,7 +241,6 @@ function admin_parts_import(): void
         redirect('/admin/parts');
     }
 
-    // 部品名をキーに、いまのマスタと突き合わせる
     $current = [];
     foreach (Database::all('SELECT id, name, kana, unit, priority FROM parts WHERE deleted_at IS NULL') as $r) {
         $current[$r['name']] = $r;
@@ -289,7 +263,6 @@ function admin_parts_import(): void
     }
     $remove = array_values(array_diff(array_keys($current), array_column($parsed['rows'], 'name')));
 
-    // 取り込む中身を一時ファイルに置き、実行のときに読み直す
     $token = bin2hex(random_bytes(12));
     $dir   = (string) config('storage.tmp', APP_ROOT . '/data/tmp');
     if (!is_dir($dir)) {
@@ -316,7 +289,6 @@ function admin_parts_import(): void
     redirect('/admin/parts');
 }
 
-/** 手順2：中身を確認したうえで実際に書き込む */
 function admin_parts_import_apply(): void
 {
     Auth::requireAdmin();
@@ -336,11 +308,9 @@ function admin_parts_import_apply(): void
         redirect('/admin/parts');
     }
 
-    // 取り込む前に、いまのマスタを丸ごと控える
     $backup = admin_backup_parts();
 
     Database::transaction(function () use ($rows) {
-        // ファイルに無くなったものを先に洗い出しておく（名前で突き合わせる）
         $fileNames = array_column($rows, 'name');
         $goneNames = array_values(array_diff(
             array_column(
@@ -357,7 +327,7 @@ function admin_parts_import_apply(): void
                     'kana'       => $row['kana'],
                     'unit'       => $row['unit'],
                     'priority'   => $row['priority'],
-                    'deleted_at' => null,        // 一度隠したものが戻ってきた場合
+                    'deleted_at' => null,
                     'updated_at' => now(),
                 ], 'id = :id', ['id' => $exists['id']]);
             } else {
@@ -372,8 +342,7 @@ function admin_parts_import_apply(): void
             }
         }
 
-        // ファイルに無かったものは隠す（消さない）。
-        // 名前を指定して隠すので、件数が多くても取りこぼしや消しすぎが起きない
+        // ファイルから消えたものは隠すだけ。名前を名指しするので消しすぎが起きない
         foreach (array_chunk($goneNames, 400) as $chunk) {
             $ph = implode(',', array_fill(0, count($chunk), '?'));
             Database::run(
@@ -412,11 +381,8 @@ function admin_parts_import_cancel(): void
     redirect('/admin/parts');
 }
 
-/**
- * Excel（.xlsx）か CSV かを中身で見分けて読む。拡張子は当てにしない
- * （エクセルで「CSV」と名前を付けても中身が .xlsx のことがある）。
- * @return array{rows:array, errors:array}
- */
+// 中身を見て .xlsx か CSV か判断する。
+// 拡張子は当てにしない（エクセルで「CSV」と名付けても中身が xlsx のことがある）
 function admin_parse_parts_file(string $path, string $originalName = ''): array
 {
     if (Xlsx::looksLike($path)) {
@@ -437,10 +403,6 @@ function admin_parse_parts_file(string $path, string $originalName = ''): array
     return admin_parse_parts_csv($path);
 }
 
-/**
- * CSVを読む。1行目は見出しとして飛ばす。
- * @return array{rows:array, errors:array}
- */
 function admin_parse_parts_csv(string $path): array
 {
     $fh = fopen($path, 'r');
@@ -454,8 +416,8 @@ function admin_parse_parts_csv(string $path): array
             $lines[] = [];
             continue;
         }
-        // BOM を落とす。エクセルの保存のしかたによっては BOM が重なることがあるので、まとめて外す
         if (!$lines) {
+            // BOMを落とす。保存のしかたによっては二重に付くことがあるのでまとめて
             $cols[0] = preg_replace('/^(?:\xEF\xBB\xBF)+/', '', (string) $cols[0]);
         }
         $lines[] = array_map(fn($v) => (string) $v, $cols);
@@ -465,13 +427,6 @@ function admin_parse_parts_csv(string $path): array
     return admin_check_parts_rows($lines);
 }
 
-/**
- * 行の中身を確かめて、取り込める形にそろえる（Excel・CSV 共通）。
- * 「製品名の重複エラーは実施したい」（概要書 K-4）に対応。
- *
- * @param string[][] $lines 1行目は見出し
- * @return array{rows:array, errors:array}
- */
 function admin_check_parts_rows(array $lines): array
 {
     $rows   = [];
@@ -486,7 +441,7 @@ function admin_check_parts_rows(array $lines): array
             if (trim((string) ($cols[0] ?? '')) === ADMIN_PART_COLUMNS[0]) {
                 continue;
             }
-            // 見出しが違うと、以降の列の対応がずれて事故になるのでここで止める
+            // 見出しが違うと以降の列がずれて事故になるので、ここで止める
             $errors[] = '1行目は見出し（' . implode('、', ADMIN_PART_COLUMNS)
                 . '）にしてください。ダウンロードしたファイルをそのまま直すのが確実です。';
             continue;
@@ -533,7 +488,6 @@ function admin_check_parts_rows(array $lines): array
     return ['rows' => $rows, 'errors' => $errors];
 }
 
-/** 取り込み前の控え。data/backups に Excel（そのまま再インポートできる形）で残す */
 function admin_backup_parts(): string
 {
     $dir = (string) config('storage.backups', APP_ROOT . '/data/backups');
@@ -551,8 +505,6 @@ function admin_backup_parts(): string
 
     return $name;
 }
-
-// ================================================================ お知らせ
 
 function admin_set_notice(string $message, string $kind = 'info'): void
 {

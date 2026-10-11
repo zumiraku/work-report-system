@@ -1,8 +1,4 @@
 <?php
-/**
- * K-7-1 管理者情報 修正画面
- * @var array $form @var array $errors
- */
 ?>
 <div class="login-wrap" style="padding:60px 0">
   <div class="profile-box">

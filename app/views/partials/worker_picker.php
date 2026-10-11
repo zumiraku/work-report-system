@@ -1,18 +1,4 @@
 <?php
-/**
- * 作業者の選択（作業者テーブルから複数選択可、任意入力も可）。
- * 2-1 と 2-5 で使う。
- *
- * 名簿は畳まずに出しっぱなしにしている。
- * 「選択」ボタンを一度押してから選ぶ形だと、現場でのタップが1回増えるため。
- * 名前そのものが大きなボタンになっていて、押すだけで選べる。
- *
- * @var array  $workers      作業者テーブル
- * @var array  $selectedIds  選択済みID
- * @var string $freeText     任意入力
- * @var bool|null $single    2-5 のように1名だけ選ぶ場合
- * @var bool|null $locked    チェック未完了で入力させない場合
- */
 $single = $single ?? false;
 $locked = $locked ?? false;
 ?>

@@ -1,13 +1,4 @@
 <?php
-/**
- * 通し試験をまとめて流す。
- *
- *   php tests/run.php            全部
- *   php tests/run.php admin      1本だけ
- *
- * 先に serve.cmd で開発サーバを起動しておくこと。
- * 各試験の前にデモデータを入れ直すので、前の試験の結果を引きずらない。
- */
 declare(strict_types=1);
 
 if (PHP_SAPI !== 'cli') {
@@ -34,11 +25,7 @@ if ($only !== null) {
     $suites = [$only];
 }
 
-/*
- * 開発機では php.ini を触らずに済むよう、足りない拡張を -d で足す。
- * このプロセス自身が -d で受け取っていても子には引き継がれないので、
- * 子と同じ条件（素の php）で何が入っているかを一度だけ調べる。
- */
+// 親が -d で受け取った拡張は子に引き継がれないので、素のphpで何が入っているか一度調べる
 $need  = ['pdo_sqlite', 'sqlite3', 'pdo_mysql', 'gd', 'curl'];
 $probe = [];
 exec(
@@ -55,7 +42,6 @@ foreach ($need as $ext) {
 }
 $php = escapeshellarg(PHP_BINARY) . $flags;
 
-/** 全角を含む見出しの桁をそろえる */
 function pad(string $text, int $width): string
 {
     $len = mb_strwidth($text, 'UTF-8');
@@ -67,7 +53,6 @@ $totalNg = 0;
 $failed  = [];
 
 foreach ($suites as $suite) {
-    // デモデータを初期状態に戻してから流す
     foreach (glob(APP_ROOT . '/data/backups/*.csv') ?: [] as $f) {
         @unlink($f);
     }
@@ -101,7 +86,6 @@ foreach ($suites as $suite) {
 echo "  " . str_repeat('-', 52) . "\n";
 printf("  %-36s OK %3d / NG %d\n", '合計', $totalOk, $totalNg);
 
-// 最後にデモデータを初期状態へ
 exec($php . ' ' . escapeshellarg(APP_ROOT . '/tools/migrate.php') . ' --seed 2>&1');
 
 if ($failed) {

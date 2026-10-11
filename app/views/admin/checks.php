@@ -1,9 +1,4 @@
 <?php
-/**
- * K-8 確認事項マスタ 登録画面 ／ 修正ダイアログ
- * @var array $rows @var int $activeCount @var array $pager @var string $sort @var string $dir
- * @var array|null $dialog @var array|null $notice
- */
 $link = fn(string $key, string $label) =>
     admin_sort_link('/admin/checks', [], $key, $label, $sort, $dir);
 $page = fn(int $p) =>

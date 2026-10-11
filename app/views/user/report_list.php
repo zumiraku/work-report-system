@@ -1,13 +1,4 @@
 <?php
-/**
- * 3 報告書一覧_画面
- *
- * 概要書 3-10「病院名は一行で表示したい。作業日、作成日をそれぞれ行に分けた方が良い」
- * に沿って、日付は上下2段・病院名は1行（長いものは末尾を省略）にしている。
- *
- * @var array $rows @var int $total @var int $page @var int $pages
- * @var int $from @var int $to @var string $sort @var string $dir
- */
 $link = function (string $key, string $label) use ($sort, $dir) {
     $next = ($sort === $key && $dir === 'DESC') ? 'asc' : 'desc';
     $mark = $sort !== $key ? '▼' : ($dir === 'DESC' ? '▼' : '▲');

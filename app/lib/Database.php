@@ -1,8 +1,5 @@
 <?php
-/**
- * PDO の薄いラッパ。
- * MySQL / SQLite どちらでも同じ呼び方で使えるようにしてある。
- */
+// PDOの薄いラッパ。MySQL / SQLite どちらでも同じ呼び方で済むようにしてある。
 declare(strict_types=1);
 
 final class Database
@@ -33,7 +30,6 @@ final class Database
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
             self::$pdo->exec('PRAGMA foreign_keys = ON');
-            // 同期中の書き込みで待たされないように
             self::$pdo->exec('PRAGMA journal_mode = WAL');
             self::$pdo->exec('PRAGMA busy_timeout = 5000');
         }
@@ -59,20 +55,17 @@ final class Database
         return $st;
     }
 
-    /** 1行取得（無ければ null） */
     public static function one(string $sql, array $params = []): ?array
     {
         $row = self::run($sql, $params)->fetch();
         return $row === false ? null : $row;
     }
 
-    /** 全行取得 */
     public static function all(string $sql, array $params = []): array
     {
         return self::run($sql, $params)->fetchAll();
     }
 
-    /** 1値取得 */
     public static function value(string $sql, array $params = [])
     {
         $v = self::run($sql, $params)->fetchColumn();

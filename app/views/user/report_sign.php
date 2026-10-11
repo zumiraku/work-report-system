@@ -1,11 +1,4 @@
 <?php
-/**
- * 2-6 サイン入力_画面
- * 概要書のとおり1画面だけ独立させている（唯一、病院の方が操作する画面）。
- * ヘッダーもメニューも出さず、書く場所だけに集中できるようにする。
- *
- * @var array $report @var string|null $error
- */
 ?>
 <!DOCTYPE html>
 <html lang="ja">

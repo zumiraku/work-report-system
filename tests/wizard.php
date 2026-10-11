@@ -1,14 +1,8 @@
 <?php
-/**
- * 2-1〜2-6 の通し試験。日本語をそのまま送るためPHPから実行する。
- *   php -d extension=pdo_sqlite -d extension=curl smoke_wizard.php
- */
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
 
-
-// ---------------------------------------------------------------- ログイン
 echo "--- ログイン ---\n";
 $r = req('POST', '/login', [
     '_csrf'    => csrf('/login'),
@@ -17,7 +11,6 @@ $r = req('POST', '/login', [
 ]);
 check('ログイン', str_contains($r['location'], '/dashboard'));
 
-// ---------------------------------------------------------------- 新規作成
 echo "--- 新規作成 ---\n";
 $uuid = 'smoke-' . bin2hex(random_bytes(6));
 $r    = req('GET', '/report/new?uuid=' . $uuid);
@@ -32,7 +25,6 @@ $seeded = (int) Database::value('SELECT COUNT(*) FROM report_models WHERE report
 check('機種12件と測定値5行が用意される', $seeded === 12
     && (int) Database::value('SELECT COUNT(*) FROM report_measurements WHERE report_id = ?', [$id]) === 5);
 
-// ---------------------------------------------------------------- 2-1
 echo "--- 2-1 基本情報 ---\n";
 $workerIds = array_column(Database::all(
     'SELECT id FROM workers WHERE account_id = (SELECT id FROM accounts WHERE account_id = ?) ORDER BY id LIMIT 2',
@@ -58,7 +50,6 @@ check('作業者3名（テーブル2名＋自由入力1名）', $row['workers_te
     (int) Database::value('SELECT COUNT(*) FROM report_workers WHERE report_id = ?', [$id]) === 3,
     (string) $row['workers_text']);
 
-// もどるは未入力でも保存して戻れる
 $r = req('POST', "/report/{$id}/basic", [
     '_csrf'      => csrf("/report/{$id}/basic"),
     'work_place' => '4階 中央無菌室（修正）',
@@ -68,7 +59,6 @@ check('もどるはダッシュボードへ', str_contains($r['location'], '/das
 check('もどるでも入力は保存される',
     Database::value('SELECT work_place FROM reports WHERE id = ?', [$id]) === '4階 中央無菌室（修正）');
 
-// ---------------------------------------------------------------- 2-2
 echo "--- 2-2 作業内容 ---\n";
 $models = Database::all('SELECT id, model_id, model_name FROM report_models WHERE report_id = ? ORDER BY sort_order', [$id]);
 $r = req('POST', "/report/{$id}/work", [
@@ -95,7 +85,6 @@ check('機種を戻せる',
 $r = req('POST', "/report/{$id}/work", ['_csrf' => csrf("/report/{$id}/work"), 'next' => '1']);
 check('つぎへで 2-3 に進む', str_contains($r['location'], "/report/{$id}/parts"));
 
-// ---------------------------------------------------------------- 2-3
 echo "--- 2-3 交換部品 ---\n";
 $r = req('POST', "/report/{$id}/parts", [
     '_csrf'    => csrf("/report/{$id}/parts"),
@@ -123,7 +112,6 @@ check('つぎへで 2-4 に進む', str_contains($r['location'], "/report/{$id}/
 check('数量>0だけが登録される',
     (int) Database::value('SELECT COUNT(*) FROM report_parts WHERE report_id = ?', [$id]) === 2);
 
-// 0 に戻すと選択から外れる
 req('POST', "/report/{$id}/parts", [
     '_csrf'              => csrf("/report/{$id}/parts"),
     "qty[{$partIds[1]}]" => '0',
@@ -132,7 +120,6 @@ req('POST', "/report/{$id}/parts", [
 check('0にすると選択から外れる',
     (int) Database::value('SELECT COUNT(*) FROM report_parts WHERE report_id = ?', [$id]) === 1);
 
-// ---------------------------------------------------------------- 2-4
 echo "--- 2-4 測定値・報告事項 ---\n";
 $mrows = array_column(Database::all(
     'SELECT id FROM report_measurements WHERE report_id = ? ORDER BY sort_order', [$id]
@@ -153,7 +140,6 @@ check('つぎへで 2-5 に進む', str_contains($r['location'], "/report/{$id}/
 check('測定値5行が保存される', (int) Database::value(
     "SELECT COUNT(*) FROM report_measurements WHERE report_id = ? AND room_name <> ''", [$id]) === 5);
 
-// 積算時間の上限
 $r = req('POST', "/report/{$id}/measure", [
     '_csrf'                                  => csrf("/report/{$id}/measure"),
     "m[{$mrows[0]}][cumulative_hours]"       => '999999',
@@ -164,7 +150,6 @@ check('積算時間10万超はエラーになる', str_contains($r['body'], '積
 check('値は上限に丸めて保存される',
     (int) Database::value('SELECT cumulative_hours FROM report_measurements WHERE id = ?', [$mrows[0]]) === 100000);
 
-// 報告事項テーブルからの追記
 $textIds = array_column(Database::all('SELECT id FROM report_texts WHERE account_id IS NULL ORDER BY sort_order LIMIT 2'), 'id');
 req('POST', "/report/{$id}/measure", [
     '_csrf'        => csrf("/report/{$id}/measure"),
@@ -176,7 +161,6 @@ $body = (string) Database::value('SELECT report_body FROM reports WHERE id = ?',
 check('定型文が2件追記される', substr_count($body, "\n") === 1 && str_contains($body, '水フィルター等'),
     mb_substr($body, 0, 28) . '…');
 
-// ---------------------------------------------------------------- 2-6 サイン
 echo "--- 2-6 サイン入力 ---\n";
 $im = imagecreatetruecolor(600, 200);
 imagefill($im, 0, 0, imagecolorallocate($im, 255, 255, 255));
@@ -208,11 +192,9 @@ $r = req('POST', "/report/{$id}/sign", [
 ]);
 check('壊れた画像は受け取らない', str_contains($r['body'], 'サインを保存できませんでした'));
 
-// ---------------------------------------------------------------- 2-5
 echo "--- 2-5 確認署名 ---\n";
 $checkIds = array_column(Database::all('SELECT id FROM checklist_items WHERE is_active = 1 ORDER BY sort_order'), 'id');
 
-// チェックが足りないのに作業者を送る
 $r = req('POST', "/report/{$id}/confirm", [
     '_csrf'          => csrf("/report/{$id}/confirm"),
     'checked'        => array_slice($checkIds, 0, 3),
@@ -224,7 +206,6 @@ check('チェック未完了では作業者を受け付けない',
 check('作業者は保存されない',
     (string) Database::value('SELECT submitter_name FROM reports WHERE id = ?', [$id]) === '');
 
-// 全部チェックして作業者を選ぶ
 $r = req('POST', "/report/{$id}/confirm", [
     '_csrf'       => csrf("/report/{$id}/confirm"),
     'checked'     => $checkIds,
@@ -238,12 +219,10 @@ check('ステータスが submitted になる', $row['status'] === 'submitted' &
 check('担当者名が保存される', $row['submitter_name'] !== '', (string) $row['submitter_name']);
 check('チェック5件が記録される', count(explode(',', (string) $row['checked_ids'])) === 5);
 
-// ---------------------------------------------------------------- 2-7
 echo "--- 2-7 完了画面 ---\n";
 $r = req('GET', "/report/{$id}/done");
 check('完了画面が表示される', $r['status'] === 200 && str_contains($r['body'], '登録しました'));
 
-// ---------------------------------------------------------------- 他社のデータ
 echo "--- 他社の報告書は見えないか ---\n";
 @unlink($JAR);
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0002', 'password' => 'pass1234']);

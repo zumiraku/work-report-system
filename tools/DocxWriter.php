@@ -1,16 +1,9 @@
 <?php
-/**
- * Word（.docx）を書き出すための最小限の道具。
- *
- * .docx は「決まった形のXMLをまとめたZIP」なので、
- * 外部ライブラリを入れなくても PHP の zip 拡張だけで作れる。
- * このプロジェクトの方針（依存を足さない）に合わせている。
- */
+// .docx を書き出すための最小限の道具。中身は決まった形のXMLのZIPなので zip拡張だけで作れる。
 declare(strict_types=1);
 
 final class DocxWriter
 {
-    /** @var string[] 本文のXML断片 */
     private array $body = [];
 
     private string $font;
@@ -20,9 +13,6 @@ final class DocxWriter
         $this->font = $font;
     }
 
-    // ------------------------------------------------------------ 書く
-
-    /** 表紙の大きな題名 */
     public function title(string $text, string $subtitle = ''): self
     {
         $this->body[] = $this->para($text, ['size' => 40, 'bold' => true, 'align' => 'center', 'after' => 120]);
@@ -61,7 +51,6 @@ final class DocxWriter
         return $this;
     }
 
-    /** 手順（1. 2. 3.）。番号は呼ぶ側で振る */
     public function step(int $no, string $text): self
     {
         $this->body[] = $this->para($no . '.　' . $text, ['size' => 21, 'after' => 80, 'indent' => 340]);
@@ -74,7 +63,6 @@ final class DocxWriter
         return $this;
     }
 
-    /** 注意書き。薄い色の帯にして目立たせる */
     public function note(string $text, string $kind = 'info'): self
     {
         $shade = ['info' => 'E9F3EC', 'warn' => 'FFF6E5', 'error' => 'FDECEC'][$kind] ?? 'E9F3EC';
@@ -87,7 +75,6 @@ final class DocxWriter
         return $this;
     }
 
-    /** 画面の見た目を文字で表す（等幅） */
     public function screen(string $text): self
     {
         foreach (explode("\n", $text) as $line) {
@@ -99,12 +86,6 @@ final class DocxWriter
         return $this;
     }
 
-    /**
-     * 表。1行目を見出しとして扱う。
-     * @param string[]   $header
-     * @param string[][] $rows
-     * @param int[]      $widths 合計 9000 くらいになるように
-     */
     public function table(array $header, array $rows, array $widths = []): self
     {
         $cols = count($header);
@@ -144,8 +125,6 @@ final class DocxWriter
         return $this;
     }
 
-    // ------------------------------------------------------------ 出力
-
     public function save(string $path): void
     {
         if (is_file($path)) {
@@ -164,8 +143,6 @@ final class DocxWriter
         $zip->addFromString('word/document.xml', $this->document());
         $zip->close();
     }
-
-    // ------------------------------------------------------------ 中身
 
     private function row(array $cells, array $widths, bool $isHeader): string
     {
@@ -193,9 +170,6 @@ final class DocxWriter
         return $xml . '</w:tr>';
     }
 
-    /**
-     * 段落ひとつ。太字にしたい部分は **ここ** のように囲む。
-     */
     private function para(string $text, array $o): string
     {
         $pr = '<w:pPr>';
@@ -232,7 +206,6 @@ final class DocxWriter
         return '<w:p>' . $pr . $this->runs($text, $o) . '</w:p>';
     }
 
-    /** **…** で囲んだところを太字にする */
     private function runs(string $text, array $o): string
     {
         $out   = '';
@@ -272,7 +245,7 @@ final class DocxWriter
              . '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
              . '<w:body>' . implode('', $this->body)
              . '<w:sectPr>'
-             . '<w:pgSz w:w="11906" w:h="16838"/>'                                  // A4
+             . '<w:pgSz w:w="11906" w:h="16838"/>'
              . '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"'
              . ' w:header="720" w:footer="720" w:gutter="0"/>'
              . '</w:sectPr></w:body></w:document>';

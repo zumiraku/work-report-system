@@ -1,13 +1,8 @@
 <?php
-/**
- * Phase 6：報告書一覧（3）とマイページ（5-1〜5-3）の確認。
- */
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
 
-
-/** 一覧のNo.列を上から拾う */
 function listNos(string $body): array
 {
     preg_match_all('/<td class="c-no num">(\d+)<\/td>/', $body, $m);
@@ -17,7 +12,6 @@ function listNos(string $body): array
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0001', 'password' => 'pass1234']);
 $accountId = (int) Database::value('SELECT id FROM accounts WHERE account_id = ?', ['ABCDE0001']);
 
-// ================================================================ 3 報告書一覧
 echo "--- 3 報告書一覧 ---\n";
 $r = req('GET', '/reports');
 check('表示される', $r['status'] === 200);
@@ -52,8 +46,8 @@ check('未完了の行には「－」がある', $draft && substr_count($r['body
     '－ ' . substr_count($r['body'], '－') . '個');
 check('病院名は修正画面へのリンク',
     str_contains($r['body'], '/report/' . $top['id'] . '/basic'));
-check('病院名を1行で出す指定がある', str_contains(
-    req('GET', '/assets/css/app.css')['body'], 'white-space: nowrap;      /* 概要書 3-10'
+check('病院名を1行で出す指定がある', (bool) preg_match(
+    '/\.list-hospital\s*\{[^}]*white-space:\s*nowrap/s', req('GET', '/assets/css/app.css')['body']
 ));
 
 echo "--- 並べ替え（3-4） ---\n";
@@ -125,12 +119,10 @@ check('測定値の実測値は空にする（前回の数字を持ち込まな�
         'SELECT COUNT(*) FROM report_measurements WHERE report_id = ? AND cumulative_hours IS NOT NULL',
         [$newId]) === 0);
 
-// 二度押し
 req('POST', '/reports/copy', ['_csrf' => csrf('/reports'), 'source_id' => $src, 'client_uuid' => $uuid]);
 check('同じキーで二度押しても1件だけ',
     (int) Database::value('SELECT COUNT(*) FROM reports WHERE account_id = ?', [$accountId]) === $before + 1);
 
-// 他社のものは写せない
 @unlink($JAR);
 req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => 'ABCDE0002', 'password' => 'pass1234']);
 check('他社の報告書は写せない',
@@ -146,7 +138,6 @@ foreach (['report_models', 'report_parts', 'report_workers', 'report_measurement
     Database::run("DELETE FROM {$t} WHERE report_id = ?", [$newId]);
 }
 
-// ================================================================ 5-1
 echo "--- 5-1 ユーザー情報変更 ---\n";
 $r = req('GET', '/mypage');
 check('表示される', $r['status'] === 200);
@@ -193,10 +184,8 @@ req('POST', '/mypage', [
 $hashAfter = (string) Database::value('SELECT password_hash FROM accounts WHERE id = ?', [$accountId]);
 check('パスワードを変えるとハッシュが変わる', $hashAfter !== $hashBefore);
 check('新しいパスワードでログインできる', password_verify('newpass1', $hashAfter));
-// 元に戻す
 Database::run('UPDATE accounts SET password_hash = ? WHERE id = ?', [$hashBefore, $accountId]);
 
-// ================================================================ 5-2
 echo "--- 5-2 作業者テーブル変更 ---\n";
 $r = req('GET', '/mypage/workers');
 check('表示される', $r['status'] === 200);
@@ -224,14 +213,12 @@ check('名前とヨミガナが保存される',
 check('空白を含む氏名が1人として入る',
     Database::value('SELECT name FROM workers WHERE id = ?', [$blank['id']]) === '新人 花子');
 
-// 空にすると消える
 req('POST', '/mypage/workers', [
     '_csrf' => csrf('/mypage/workers'), "w[{$blank['id']}][name]" => '', "w[{$blank['id']}][kana]" => '',
 ]);
 check('氏名を空にすると行が消える',
     Database::value('SELECT id FROM workers WHERE id = ?', [$blank['id']]) === null);
 
-// 削除は隠すだけ
 $used = Database::one(
     'SELECT w.id, w.name FROM workers w
       WHERE w.account_id = ? AND w.deleted_at IS NULL
@@ -257,7 +244,6 @@ foreach (['created', 'updated', 'name'] as $key) {
 }
 check('知らないキーは既定に戻す', req('GET', '/mypage/workers?sort=../../etc')['status'] === 200);
 
-// ================================================================ 5-3
 echo "--- 5-3 報告事項テーブル変更 ---\n";
 $r = req('GET', '/mypage/texts');
 check('表示される', $r['status'] === 200);
@@ -292,7 +278,6 @@ check('元の件数に戻る',
     (int) Database::value('SELECT COUNT(*) FROM report_texts WHERE account_id = ? AND deleted_at IS NULL',
         [$accountId]) === $tBefore);
 
-// ================================================================ 導線と警告
 echo "--- 導線 ---\n";
 check('ダッシュボードから3画面へのリンクがある', (function () {
     $b = req('GET', '/dashboard')['body'];

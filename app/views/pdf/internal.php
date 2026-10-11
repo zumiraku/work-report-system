@@ -1,14 +1,9 @@
 <?php
-/**
- * 社内用報告書のPDF型紙。概要書 4-7 のプレビュー画像を再現。
- *
- * @var array $report @var array $internal @var array $parts @var string $density
- */
 $in = $internal;
 $fs = ['d1' => 10.5, 'd2' => 9.5, 'd3' => 8.5][$density] ?? 10;
 $sm = round($fs * 0.85, 1);
 
-$rows = max(9, count($parts));   // 様式どおり9行の枠
+$rows = max(9, count($parts));
 
 $moveOut  = InternalReport::spanMinutes($in['travel_out_from'], $in['travel_out_to']);
 $moveBack = InternalReport::spanMinutes($in['travel_back_from'], $in['travel_back_to']);

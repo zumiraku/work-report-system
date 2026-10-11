@@ -1,21 +1,10 @@
 <?php
-/**
- * 通信が切れている間に端末へ溜めた操作を、あとで受け取るときの門番。
- *
- * 端末は溜めた操作ひとつひとつに op_id（使い捨ての受付番号）を付けて送ってくる。
- * 電波の切れ際で「サーバーには届いたが応答が返らなかった」ときは、端末が
- * 同じ op_id で再送してくるので、ここで一度だけ処理するようにする。
- *
- * 概要書「同じデータが二重登録されない」への対応。
- */
+// 圏外で端末に溜めた操作が二重に届くのを防ぐ。
+// op_id を台帳に入れるだけ。入らなかった＝既に処理済みなので duplicate を返す。
 declare(strict_types=1);
 
 final class Sync
 {
-    /**
-     * POST に op_id が付いていたら、処理済みかどうかを見る。
-     * 処理済みなら本体を動かさずに返す。初回なら台帳に載せて先に進める。
-     */
     public static function guardReplay(): void
     {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
@@ -35,7 +24,7 @@ final class Sync
                 'created_at' => now(),
             ]);
         } catch (PDOException $e) {
-            // op_id が重複 = 前回すでに処理している。もう一度は動かさない
+            // ux_sync_ops_op_id に当たった＝受付済み。黙って成功扱いにする
             json_out([
                 'status' => 'duplicate',
                 'op_id'  => $opId,

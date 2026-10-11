@@ -1,5 +1,4 @@
 <?php
-/** @var array $counts @var array $screens @var int $donePhase @var string $driver @var string $dbPath */
 $phaseNames = [
     1 => '土台（構成・DB・デザイン）',
     2 => 'ログイン・ダッシュボード',

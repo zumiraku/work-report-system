@@ -1,8 +1,4 @@
 <?php
-/**
- * 1-2 ダッシュボード画面
- * @var array $user @var array|null $draft @var int $reportCount @var bool $autoLogin
- */
 ?>
 <div class="dash-greeting">
   <?= h($user['company_name']) ?><br>

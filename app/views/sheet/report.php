@@ -1,27 +1,12 @@
 <?php
-/**
- * 作業完了報告書 A4 1枚（概要書 2-8 のプレビュー画像を再現）
- *
- * この1ファイルが、プレビュー・印刷・本番のPDF出力で共通の「型紙」になる。
- * 本番では同じHTMLを mPDF に渡すので、画面と紙の見た目がずれない。
- *
- * @var array  $report
- * @var array  $models
- * @var array  $parts
- * @var array  $measurements
- * @var string $density   d1|d2|d3（載る量に応じた詰め具合）
- * @var string|null $signatureUrl  サイン画像の場所（利用者用と管理者用で違う）
- * @var bool   $forPrint  開いたら印刷ダイアログを出すか
- */
+// 画面で見るA4。PDF(app/views/pdf/report.php)と同じデータから作る
 $r = $report;
 
-/* 作業日。複数日にまたがる場合は「〜」でつなぐ */
 $workDate = ymd_ja((string) $r['work_date'], false);
 if ($r['work_date_end'] && $r['work_date_end'] !== $r['work_date']) {
     $workDate .= '〜' . ymd_ja((string) $r['work_date_end'], false);
 }
 
-/* 報告事項は行ごとに「・」を付けて並べる */
 $reportLines = array_values(array_filter(array_map(
     'trim',
     preg_split('/\R/u', (string) $r['report_body']) ?: []

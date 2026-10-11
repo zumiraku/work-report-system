@@ -1,21 +1,11 @@
 <?php
-/**
- * Vercel 用の入口。
- *
- * さくらでは public/index.php が入口だが、Vercel は api/ の中の PHP しか
- * 実行しないため、ここを入口にしている。中身は同じものを呼んでいる。
- *
- * Vercel は「保存できないサーバー」なので、書き込み先はすべて /tmp に逃がす
- * （app/config.vercel.php で切り替えている）。
- */
+// Vercel の入口。さくらでは public/index.php が入口になるのでこのファイルは使わない。
 declare(strict_types=1);
 
 define('APP_ROOT', dirname(__DIR__));
 
 $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
-// ---- 動作確認用 ------------------------------------------------
-// 画面が出ないときに、何が足りないのかを一目で分かるようにしておく
 if ($path === '/_check') {
     header('Content-Type: text/plain; charset=utf-8');
 
@@ -36,7 +26,6 @@ if ($path === '/_check') {
     $live = $tmp . '/wcr/app.sqlite';
     echo "動作中のDB    : " . (is_file($live) ? number_format(filesize($live)) . ' bytes' : '（まだ作られていません）') . "\n";
 
-    // ログインできないときに、原因がロックなのかどうかをここで見分ける
     if (is_file($live)) {
         try {
             require_once APP_ROOT . '/app/lib/helpers.php';
