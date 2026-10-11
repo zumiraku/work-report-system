@@ -1,13 +1,4 @@
 <?php
-/**
- * 4-6 社内用報告書作成 PDF確認_画面
- *
- * 「完了」で概要書 5-⑥「ステータスを完了（請求済）にする」を行う。
- * 確認のアラートは JavaScript の confirm ではなく画面に出す形にしている。
- * これなら JavaScript が止まっていても、押し間違いを防げる。
- *
- * @var array $report @var array $internal @var bool $askDone
- */
 $id   = (int) $report['id'];
 $done = !empty($internal['completed_at']);
 ?>

@@ -1,12 +1,4 @@
 <?php
-/**
- * 2-4 測定値・報告事項登録_画面
- * 幅768pxに5列を並べると窮屈なので、1件を1枚のカードにして縦に積んでいる。
- * 横スクロールさせるより、現場で押し間違えにくい。
- *
- * @var array $report @var array $rows @var array $models @var array $texts
- * @var bool $canAddRow @var array $errors @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/step_nav.php';
 ?>
 

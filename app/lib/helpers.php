@@ -1,7 +1,4 @@
 <?php
-/**
- * 共通ヘルパ。
- */
 declare(strict_types=1);
 
 function config(?string $key = null, $default = null)
@@ -23,17 +20,12 @@ function config(?string $key = null, $default = null)
     return $value;
 }
 
-/** HTML エスケープ */
 function h($value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-/**
- * CSS/JS の URL に「?v=更新時刻」を付ける。
- * ファイルを直すたびに URL が変わるので、端末に古いものが残らない
- * （Service Worker のキャッシュ名にも同じ値を使う）。
- */
+// CSS/JSのURLに更新時刻を付ける。直すたびURLが変わるので端末に古いものが残らない
 function asset(string $path): string
 {
     static $memo = [];
@@ -44,7 +36,6 @@ function asset(string $path): string
     return $memo[$path];
 }
 
-/** 部品全体の版。どれか1つでも変わると値が変わる */
 function asset_version(): string
 {
     static $v = null;
@@ -88,7 +79,6 @@ function json_out($data, int $status = 200): void
     exit;
 }
 
-/** POST の JSON ボディを配列で受け取る（同期API用） */
 function json_body(): array
 {
     $raw = file_get_contents('php://input');
@@ -99,7 +89,6 @@ function json_body(): array
     return is_array($data) ? $data : [];
 }
 
-/** ビューを描画する。$layout に false を渡すと部分ビューだけ返す */
 function view(string $template, array $data = [], ?string $layout = null): void
 {
     extract($data, EXTR_SKIP);
@@ -127,7 +116,6 @@ function render_error(int $status, string $message, string $detail = ''): void
     ]);
 }
 
-/** CSRF トークン */
 function csrf_token(): string
 {
     if (empty($_SESSION['csrf'])) {
@@ -149,19 +137,14 @@ function csrf_check(): void
         exit;
     }
 
-    // 受付番号を使うのは、トークンの確認を通ったあと。
-    // 先に使ってしまうと、419で弾かれた直後の再送が
-    //「処理済み」と誤判定され、入力が失われてしまう
     Sync::guardReplay();
 }
 
-/** 一覧の●／－ 表示 */
 function mark(bool $on): string
 {
     return $on ? '●' : '－';
 }
 
-/** 2026-09-03 → 26/09/03 */
 function ymd_slash(?string $date): string
 {
     if (!$date) {
@@ -171,7 +154,6 @@ function ymd_slash(?string $date): string
     return $ts ? date('y/m/d', $ts) : '';
 }
 
-/** 2026-09-03 → 2026年9月3日(木) */
 function ymd_ja(?string $date, bool $withDow = true): string
 {
     if (!$date) {

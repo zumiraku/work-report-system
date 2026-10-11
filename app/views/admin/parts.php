@@ -1,9 +1,4 @@
 <?php
-/**
- * K-4 交換部品マスター 登録画面
- * @var array $rows @var array $pager @var string $q @var string $sort @var string $dir
- * @var array|null $dialog @var array|null $diff @var array|null $notice
- */
 $keep = ['q' => $q];
 $link = fn(string $key, string $label) =>
     admin_sort_link('/admin/parts', $keep, $key, $label, $sort, $dir);

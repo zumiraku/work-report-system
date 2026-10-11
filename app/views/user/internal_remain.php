@@ -1,8 +1,4 @@
 <?php
-/**
- * 4-2 社内用報告書作成 今回作業時の残作業_画面
- * @var array $report @var array $internal @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/internal_step_nav.php';
 ?>
 

@@ -1,13 +1,5 @@
-/* ============================================================
-   作業完了報告書 A4用紙（概要書 2-8 のプレビュー画像を再現）
-
-   この1枚を、プレビュー・印刷・本番のPDF（mPDF）が共通で使う。
-   さくらの共用サーバーには変換ソフトを置けないため、
-   「エクセルのテンプレートに流し込む」代わりに、
-   同じ体裁をHTML/CSSで組んでいる。
-
-   単位は mm。A4は 210 x 297mm。
-   ============================================================ */
+/* A4の用紙そのもの。単位は mm（210 x 297）。
+   ?guide=1 で1枚目の境目に赤い線を出す */
 
 @page {
   size: A4 portrait;
@@ -16,7 +8,7 @@
 
 :root {
   --ink:  #111;
-  --rule: #333;          /* 罫線 */
+  --rule: #333;
   --thin: #777;
   --sheet-font: 10pt;
   --sheet-line: 1.55;
@@ -34,7 +26,6 @@ html, body {
   print-color-adjust: exact;
 }
 
-/* ---------- 用紙 ---------- */
 .sheet {
   position: relative;
   width: 210mm;
@@ -46,12 +37,10 @@ html, body {
   line-height: var(--sheet-line);
 }
 
-/* 詰め具合。載る量に応じてサーバー側が付け替える */
 .sheet.d1 { --sheet-font: 10.5pt; --sheet-line: 1.7; }
 .sheet.d2 { --sheet-font: 9.5pt;  --sheet-line: 1.5; }
 .sheet.d3 { --sheet-font: 8.5pt;  --sheet-line: 1.35; }
 
-/* ---------- 見出し ---------- */
 .sheet__kind {
   font-size: .78em;
   color: var(--thin);
@@ -71,7 +60,6 @@ html, body {
   font-size: .95em;
 }
 
-/* 宛先と自社 */
 .sheet__head {
   display: flex;
   align-items: flex-end;
@@ -105,7 +93,6 @@ html, body {
   color: #222;
 }
 
-/* ---------- 共通の表 ---------- */
 .s-table {
   width: 100%;
   border-collapse: collapse;
@@ -127,14 +114,12 @@ html, body {
   white-space: nowrap;
 }
 
-/* 作業日・作業場所・作業者・作業件名 */
 .info-table { margin-top: 4mm; }
 .info-table th { width: 24mm; }
 
-/* ---------- 作業内容 ／ 交換部品 ---------- */
 .body-grid {
   display: flex;
-  margin-top: -0.3mm;          /* 上の表と罫線を重ねる */
+  margin-top: -0.3mm;
 }
 .body-grid__left  { flex: 1 1 58%; min-width: 0; }
 .body-grid__right { flex: 0 0 42%; margin-left: -0.3mm; }
@@ -156,7 +141,6 @@ html, body {
 .work-list li::before { content: "・"; }
 .work-note { margin: 1.5mm 0 0; white-space: pre-wrap; }
 
-/* 交換部品：名前と数量 */
 .parts-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .parts-table td {
   border-bottom: .2mm dotted #999;
@@ -169,8 +153,6 @@ html, body {
 .parts-empty { color: var(--thin); }
 .parts-note { margin: 1.5mm 0 0; white-space: pre-wrap; font-size: .92em; }
 
-/* ---------- 測定値 ---------- */
-/* 概要書 2-8「1件を横一行にしても良い」に沿って、1件1行に並べている */
 .measure-table { margin-top: -0.3mm; }
 .measure-table th { letter-spacing: 0; text-indent: 0; }
 .measure-table col.c-room   { width: 22mm; }
@@ -182,7 +164,6 @@ html, body {
 .measure-table td.left { text-align: left; }
 .measure-table .empty { color: var(--thin); }
 
-/* ---------- 報告事項 ---------- */
 .report-block { margin-top: -0.3mm; }
 .report-list { margin: 0; padding: 0; list-style: none; }
 .report-list li {
@@ -193,7 +174,6 @@ html, body {
 .report-list li::before { content: "・"; }
 .report-empty { color: var(--thin); }
 
-/* ---------- 締め ---------- */
 .sheet__foot { margin-top: 4mm; }
 .sheet__foot-lead { font-size: .95em; }
 
@@ -221,7 +201,7 @@ html, body {
   max-width: 100%;
   max-height: 12mm;
   vertical-align: bottom;
-  mix-blend-mode: multiply;     /* 白地を残さず紙になじませる */
+  mix-blend-mode: multiply;
 }
 .sign-cell__value span {
   display: block;
@@ -229,7 +209,6 @@ html, body {
   font-size: 1.05em;
 }
 
-/* ---------- 画面で見るとき ---------- */
 @media screen {
   body { padding: 10px 0 26px; }
   .sheet {
@@ -237,7 +216,6 @@ html, body {
   }
 }
 
-/* ---------- 印刷するとき ---------- */
 @media print {
   html, body { background: #fff; padding: 0; }
   .sheet {
@@ -247,23 +225,16 @@ html, body {
     box-shadow: none;
     page-break-after: avoid;
   }
-  /* 途中で切れると読めなくなる塊は割らない */
   .block, .measure-table, .report-block, .sheet__foot {
     page-break-inside: avoid;
   }
 }
 
-/* ============================================================
-   社内用報告書（4-7）で足りない分
-   ============================================================ */
-
-/* 自由記述の枠は、様式の見た目に合わせて高さを確保する */
 .block--tall { min-height: 42mm; }
 .block__body--flush { padding: 0; }
 
 .free-text { margin: 0; white-space: pre-wrap; }
 
-/* 再手配の必要な部材：様式どおり9行分の枠を引く */
 .parts-table--ruled th {
   padding: .8mm 1.5mm;
   background: #f2f2f2;
@@ -277,7 +248,6 @@ html, body {
 .parts-table--ruled td { height: 5.2mm; border-bottom: .2mm solid #bbb; }
 .parts-table--ruled tr:last-child td { border-bottom: 0; }
 
-/* 移動および作業時間 */
 .hours-legend--sheet { margin: 0 0 1.5mm; font-size: .9em; }
 .hours-sheet { width: 100%; border-collapse: collapse; }
 .hours-sheet td {
@@ -296,7 +266,6 @@ html, body {
 .hours-sheet--total .label { width: auto; text-align: left; color: var(--thin); }
 .hours-sheet--total .len   { width: 24mm; }
 
-/* 完了（請求済）の印 */
 .sheet__stamp {
   margin-top: 3mm;
   text-align: right;
@@ -306,10 +275,6 @@ html, body {
   letter-spacing: .05em;
 }
 
-/* ============================================================
-   ?guide=1 を付けたときだけ出る、用紙のふちの目印
-   1枚に収まっているかを画面で確かめるためのもの（印刷には出ない）
-   ============================================================ */
 @media screen {
   body.guide .sheet { position: relative; }
   body.guide .sheet::after {

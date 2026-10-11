@@ -1,11 +1,4 @@
 <?php
-/**
- * 2-5 確認署名_画面
- * 確認事項すべてにチェックが入るまで、作業者の入力はできない（概要書 2-5-3）。
- *
- * @var array $report @var array $checklist @var array $form @var array $errors
- * @var array $workers @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/step_nav.php';
 $allChecked = count($form['checked']) === count($checklist);
 $hasSign    = !empty($report['signature_at']);

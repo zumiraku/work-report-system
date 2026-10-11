@@ -1,15 +1,8 @@
 <?php
-/**
- * K-5 機種名マスター ／ K-6 報告事項マスター ／ K-7 管理者情報
- *
- * K-5 と K-6 は形がほぼ同じなので、ダイアログの作りを1つにまとめている。
- */
 declare(strict_types=1);
 
 require_once APP_ROOT . '/app/controllers/admin_common.php';
-require_once APP_ROOT . '/app/controllers/admin_parts.php';   // お知らせ表示を借りる
-
-// ================================================================ K-5 機種名マスター
+require_once APP_ROOT . '/app/controllers/admin_parts.php';
 
 const ADMIN_MODEL_SORTS = [
     'no'      => 'id',
@@ -102,15 +95,12 @@ function admin_models_delete(): void
     $id  = (int) post('id', 0);
     $row = Database::one('SELECT * FROM machine_models WHERE id = ?', [$id]);
     if ($row) {
-        // 過去の報告書には機種名を写してあるので、隠すだけで記録は残る
         Database::update('machine_models', ['deleted_at' => now(), 'updated_at' => now()],
             'id = :id', ['id' => $id]);
         audit('admin_model_deleted', 'machine_models:' . $row['name']);
     }
     redirect('/admin/models');
 }
-
-// ================================================================ K-6 報告事項マスター
 
 const ADMIN_TEXT_SORTS = [
     'no'      => 'id',
@@ -124,7 +114,6 @@ function admin_texts(): void
 
     [$sort, $dir] = admin_sort(ADMIN_TEXT_SORTS, 'no', 'ASC');
 
-    // 事務局が管理するのは全社共通のもの（account_id が NULL）だけ
     $pager  = admin_pager((int) Database::value(
         'SELECT COUNT(*) FROM report_texts WHERE account_id IS NULL AND deleted_at IS NULL'));
     $column = ADMIN_TEXT_SORTS[$sort];
@@ -201,8 +190,6 @@ function admin_texts_delete(): void
     redirect('/admin/texts');
 }
 
-// ================================================================ K-7 管理者情報
-
 function admin_profile(): void
 {
     Auth::requireAdmin();
@@ -276,12 +263,6 @@ function admin_profile(): void
     ], 'layout_admin');
 }
 
-// ================================================================ 共通
-
-/**
- * K-5 / K-6 のダイアログ。?new=1 で追加、?edit=<id> で修正。
- * 入力し直しのときはセッションに預けた値を優先する。
- */
 function admin_simple_dialog(string $table, string $flashKey, array $fields): ?array
 {
     $flash = $_SESSION[$flashKey] ?? null;

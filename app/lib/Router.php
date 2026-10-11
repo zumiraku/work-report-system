@@ -1,13 +1,9 @@
 <?php
-/**
- * 最小限のルーター。
- * ライブラリを足さない方針なので自前。{id} のようなプレースホルダだけ対応する。
- */
+// URLの振り分け。{id} の部分だけ拾えれば足りるので正規表現1本で済ませている。
 declare(strict_types=1);
 
 final class Router
 {
-    /** @var array<int, array{method:string, regex:string, keys:array, handler:callable}> */
     private array $routes = [];
 
     public function get(string $path, callable $handler): void
@@ -20,7 +16,6 @@ final class Router
         $this->add('POST', $path, $handler);
     }
 
-    /** GET も POST も同じ処理でよい画面用 */
     public function any(string $path, callable $handler): void
     {
         $this->add('GET', $path, $handler);

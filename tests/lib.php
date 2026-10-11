@@ -1,15 +1,8 @@
 <?php
-/**
- * 通し試験の共通部分。
- *
- * 実際に開発サーバへHTTPで叩きにいき、画面の応答とDBの中身の両方を見る。
- * ブラウザを使わずに動かせるので、直したあとすぐ流し直せる。
- *
- * 使い方（先に serve.cmd でサーバを起動しておく）
- *   php tests/run.php            全部まとめて
- *   php tests/wizard.php         1本だけ
- *   set WCR_BASE=http://...      別のURLに向ける場合
- */
+// 通し試験の共通部分。実際に開発サーバへHTTPで叩きにいき、画面とDBの両方を見る。
+//   php tests/run.php          全部
+//   php tests/run.php admin    1本だけ
+// 先に serve.cmd でサーバを起動しておくこと。
 declare(strict_types=1);
 
 define('TEST_ROOT', dirname(__DIR__));
@@ -35,12 +28,6 @@ $TMP  = sys_get_temp_dir();
 $pass = 0;
 $fail = 0;
 
-/**
- * リクエストを1回投げる。
- * $fields に配列を渡すと name[]= の形で送る。$file を渡すとファイル添付になる。
- *
- * @return array{status:int, location:string, body:string, head:string}
- */
 function req(string $method, string $path, array $fields = [], ?string $file = null): array
 {
     global $BASE, $JAR;
@@ -85,7 +72,6 @@ function req(string $method, string $path, array $fields = [], ?string $file = n
     return ['status' => $status, 'location' => trim($m[1] ?? ''), 'body' => $body, 'head' => $head];
 }
 
-/** name[]=a&name[]=b の形も作れるようにする */
 function test_body(array $fields): string
 {
     $parts = [];
@@ -98,7 +84,6 @@ function test_body(array $fields): string
     return implode('&', $parts);
 }
 
-/** その画面のCSRFトークンを取り出す */
 function csrf(string $path): string
 {
     preg_match('/name="_csrf" value="([a-f0-9]+)"/', req('GET', $path)['body'], $m);
@@ -112,7 +97,6 @@ function check(string $label, bool $ok, string $detail = ''): void
     echo ($ok ? '  OK   ' : '  NG   ') . $label . ($detail !== '' ? "  [{$detail}]" : '') . "\n";
 }
 
-/** 各試験の最後に呼ぶ。件数を出して終了コードを返す */
 function test_summary(): void
 {
     global $pass, $fail;
@@ -120,7 +104,6 @@ function test_summary(): void
     exit($fail === 0 ? 0 : 1);
 }
 
-/** ログインの短縮 */
 function login_user(string $id = 'ABCDE0001', string $password = 'pass1234'): void
 {
     req('POST', '/login', ['_csrf' => csrf('/login'), 'login_id' => $id, 'password' => $password]);

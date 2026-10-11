@@ -1,9 +1,4 @@
 <?php
-/**
- * K-5 機種名マスター 登録画面 ／ 修正ダイアログ
- * @var array $rows @var array $pager @var string $sort @var string $dir
- * @var array|null $dialog @var array|null $notice
- */
 $link = fn(string $key, string $label) =>
     admin_sort_link('/admin/models', [], $key, $label, $sort, $dir);
 $page = fn(int $p) =>

@@ -1,10 +1,4 @@
 <?php
-/**
- * 5-1 ユーザー情報_変更画面
- * IDは管理者サイトで発行するものなので、ここでは表示だけ。
- *
- * @var array $user @var array $form @var array $errors
- */
 ?>
 <h1 class="page-title">ユーザー情報変更</h1>
 

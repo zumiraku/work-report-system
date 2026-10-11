@@ -1,13 +1,5 @@
-/* ============================================================
-   マイク入力（概要書「任意のテキスト入力は『マイク入力』ができるようにする」）
-
-   data-mic="1" が付いた入力欄の横にマイクボタンを足す。
-   ブラウザの音声認識（Web Speech API）を使うので、
-   AndroidタブレットのChromeなら追加費用なしで動く。
-
-   対応していない端末（iPadのSafariなど）では
-   ボタンを出さずに、キーボードのマイクボタンを使ってもらう案内を1度だけ出す。
-   ============================================================ */
+/* data-mic="1" の欄にマイクボタンを足す。
+   iPadのSafariなど未対応の端末ではボタンを出さず、キーボードのマイクを案内する */
 (function () {
   'use strict';
 
@@ -21,7 +13,7 @@
     return;
   }
 
-  var active = null;   /* いま録っている欄 */
+  var active = null;
 
   Array.prototype.forEach.call(fields, function (field) {
     var btn = document.createElement('button');
@@ -90,7 +82,6 @@
         base += fixed;
       }
       field.value = base + interim;
-      /* 端末への下書き保存を走らせる */
       field.dispatchEvent(new Event('input', { bubbles: true }));
     };
 
@@ -134,8 +125,6 @@
     setTimeout(function () { clearNote(f); }, 2500);
   }
 
-  /* ---------------- 案内表示 ---------------- */
-
   function note(field, message) {
     var host = field.tagName === 'TEXTAREA' ? field.parentNode : field.closest('.form-row') || field.parentNode;
     clearNote(field);
@@ -154,7 +143,6 @@
   }
 
   function showFallbackNote() {
-    /* 一度案内したら、同じ端末では出さない */
     try {
       if (localStorage.getItem('wcr.micNoteShown') === '1') return;
     } catch (e) {}

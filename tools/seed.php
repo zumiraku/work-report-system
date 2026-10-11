@@ -1,10 +1,4 @@
 <?php
-/**
- * デモ用データ。
- * 概要書に出てくる機種名・部品名・報告事項・報告書一覧をそのまま再現している。
- * 交換部品は「1万点ある」前提の検索・ソートを実機で確かめたいので、
- * 実際に 10,000 件入れている。
- */
 declare(strict_types=1);
 
 function seed_all(): void
@@ -38,7 +32,6 @@ function seed_truncate(): void
         'audit_logs', 'login_attempts', 'remember_tokens', 'sync_ops', 'accounts', 'admins',
     ] as $t) {
         Database::pdo()->exec("DELETE FROM {$t}");
-        // 採番も 1 から。SQLite と MySQL で戻し方が違う
         if (Database::driver() === 'mysql') {
             Database::pdo()->exec("ALTER TABLE {$t} AUTO_INCREMENT = 1");
         }
@@ -47,8 +40,6 @@ function seed_truncate(): void
         Database::pdo()->exec("DELETE FROM sqlite_sequence");
     }
 }
-
-// ---------------------------------------------------------------- 管理者
 
 function seed_admin(): void
 {
@@ -60,8 +51,6 @@ function seed_admin(): void
         'updated_at'    => now(),
     ]);
 }
-
-// ---------------------------------------------------------------- アカウント（協力会社）
 
 function seed_accounts(): array
 {
@@ -84,11 +73,8 @@ function seed_accounts(): array
     return $ids;
 }
 
-// ---------------------------------------------------------------- 作業者テーブル（5-2）
-
 function seed_workers(array $accounts): void
 {
-    // 概要書 5-2 の一覧＋報告書一覧に出てくる名前
     $main = [
         ['鈴木太郎', 'スズキタロウ'],
         ['加藤次郎', 'カトウジロウ'],
@@ -121,8 +107,6 @@ function seed_workers(array $accounts): void
     }
 }
 
-// ---------------------------------------------------------------- 機種名マスタ（K-5 / 2-2）
-
 function seed_models(): void
 {
     $models = [
@@ -151,11 +135,8 @@ function seed_models(): void
     }
 }
 
-// ---------------------------------------------------------------- 交換部品マスタ（K-4 / 2-3）
-
 function seed_parts(): void
 {
-    // 概要書 2-3 に並んでいる11点。優先順位を高くして画面の先頭に出す
     $featured = [
         ['プレフィルター', 'プレフィルター', '枚', 999999],
         ['水フィルター', 'ミズフィルター', '本', 999998],
@@ -170,7 +151,6 @@ function seed_parts(): void
         ['ファン', 'ファン', '個', 999989],
     ];
 
-    // 1万点規模を再現するための品目。カテゴリ × 型番 で組み合わせる
     $categories = [
         ['中性能フィルター', 'チュウセイノウフィルター', '枚'],
         ['ケミカルフィルター', 'ケミカルフィルター', '枚'],
@@ -257,11 +237,8 @@ function seed_parts(): void
     }
 }
 
-// ---------------------------------------------------------------- 報告事項（5-3 / K-6）
-
 function seed_report_texts(array $accounts): void
 {
-    // account_id = NULL は事務局が登録した全社共通の定型文
     $common = [
         '水フィルター等、消耗部品は交換いたしました。',
         'BCR3シャワーパンのゆるみ、BCR5、入口扉の動きは修正し動作良好です。その他、特に問題ありません。',
@@ -280,7 +257,6 @@ function seed_report_texts(array $accounts): void
         ]);
     }
 
-    // 会社ごとに追加した定型文（5-3 で利用者が登録するもの）
     foreach ([
         '次回点検時にHEPAフィルターの交換を予定しております。',
         '異音の発生していた送風機ベアリングを交換し、振動値は基準内に収まりました。',
@@ -295,11 +271,8 @@ function seed_report_texts(array $accounts): void
     }
 }
 
-// ---------------------------------------------------------------- 確認事項（2-5）
-
 function seed_checklist(): void
 {
-    // 概要書では確認事項3〜5が未定だったため、後から文言を変えられるマスタにしている
     $items = [
         '予定の作業はすべて終了しました',
         '作業前の状態に復旧したことを確認しました',
@@ -319,11 +292,6 @@ function seed_checklist(): void
     }
 }
 
-/**
- * デモ用の手書きサインを作る。
- * 実際は 2-6 のキャンバスで書いた画像が入るところ。
- * 一覧が「署名 有」なのに紙が空欄、という食い違いを起こさないために用意している。
- */
 function seed_signature_image(int $no, string $name): string
 {
     $dir = config('storage.signatures');
@@ -339,7 +307,6 @@ function seed_signature_image(int $no, string $name): string
     imagesetthickness($im, 5);
     imageantialias($im, true);
 
-    // 名前ごとに形が変わるよう、名前から乱数の種を作る
     mt_srand(crc32($name . $no));
 
     $x = 60;
@@ -357,7 +324,6 @@ function seed_signature_image(int $no, string $name): string
             $px = $nx;
             $py = $ny;
         }
-        // 払い
         imageline($im, (int) $px, (int) $py, (int) ($px + 26), (int) ($py + 22), $ink);
         $x = $px + mt_rand(20, 40);
         if ($x > $w - 120) {
@@ -372,8 +338,6 @@ function seed_signature_image(int $no, string $name): string
     return $file;
 }
 
-// ---------------------------------------------------------------- 報告書（3 報告書一覧）
-
 function seed_reports(array $accounts): void
 {
     $accountId = $accounts['ABCDE0001'];
@@ -386,7 +350,6 @@ function seed_reports(array $accounts): void
     $models = Database::all('SELECT id, name FROM machine_models ORDER BY sort_order');
     $parts  = Database::all('SELECT id, name, unit FROM parts ORDER BY priority DESC, id LIMIT 11');
 
-    // [No, 作業日, 作成日, 病院名, 作業場所, 作業件名, 作業者, 状態, メール送信回数]
     $rows = [
         [1001, '2026-08-25', '2026-08-26', '横浜市立大学附属病院', '4階 中央無菌室',
             '無菌病室(MIU-201)×3台 保守点検', ['落合健一', '米窪花子'], 'completed', 1],
@@ -424,9 +387,7 @@ function seed_reports(array $accounts): void
             'parts_note'     => null,
             'report_body'    => $isDraft ? null : implode("\n", array_slice($texts, 0, 3)),
             'checked_ids'    => $isDraft ? null : $allChecks,
-            // 2-5 の下段「作業者」＝報告書の「担当」。提出済みなら必ず入っている
             'submitter_name' => $isDraft ? null : $workers[0],
-            // 一覧の「署名 有」と紙のサイン欄を食い違わせないよう、画像も作る
             'signature_file' => $isDraft ? null : seed_signature_image($no, $workers[0]),
             'signature_at'   => $isDraft ? null : $workDate . ' 16:40:00',
             'pdf_at'         => $isDraft ? null : $createdDate . ' 09:12:00',
@@ -454,10 +415,9 @@ function seed_reports(array $accounts): void
         }
 
         if ($isDraft) {
-            continue;   // 作成途中の1件は明細を入れずに残しておく（下書き復帰のデモ用）
+            continue;
         }
 
-        // 作業内容（機種と台数）
         foreach (array_slice($models, 0, 3) as $k => $m) {
             Database::insert('report_models', [
                 'report_id'  => $reportId,
@@ -468,7 +428,6 @@ function seed_reports(array $accounts): void
             ]);
         }
 
-        // 交換部品
         foreach (array_slice($parts, 0, 5) as $k => $p) {
             Database::insert('report_parts', [
                 'report_id'  => $reportId,
@@ -480,7 +439,6 @@ function seed_reports(array $accounts): void
             ]);
         }
 
-        // 測定値
         $rooms = ['BCR1', 'BCR2', 'BCR3', 'BCR4', 'BCR5'];
         foreach ($rooms as $k => $room) {
             Database::insert('report_measurements', [
@@ -494,7 +452,6 @@ function seed_reports(array $accounts): void
             ]);
         }
 
-        // 社内用報告書（完了しているものだけ）
         if ($isCompleted) {
             $internalId = Database::insert('internal_reports', [
                 'report_id'        => $reportId,
@@ -531,7 +488,6 @@ function seed_reports(array $accounts): void
             }
         }
 
-        // メール送信ログ
         for ($m = 0; $m < $mailCount; $m++) {
             Database::insert('mail_logs', [
                 'report_id'  => $reportId,

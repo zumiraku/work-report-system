@@ -1,26 +1,18 @@
-/* ============================================================
-   通信が切れても入力を続けられるようにする層。
+/*
+  圏外でも入力を続けられるようにする層。
 
-   やっていること
-     1. 入力するたび、その画面の値を端末（IndexedDB）に控える
-     2. 電波が無いときの「つぎへ／もどる」は、送信内容を端末の送信箱に溜めて
-        次の画面へ進む（画面はService Workerのキャッシュから出る）
-     3. 電波が戻ったら、溜めた順にサーバーへ送る
-     4. ひとつひとつに受付番号（op_id）を付けるので、届いたのに応答が
-        返らなかった場合に再送しても二重登録にならない
-     5. ヘッダー下の帯に「サーバー送信済み／端末保存中／オフライン」を出す
+  入力のたび IndexedDB に控え、電波が無いときの「つぎへ」は送信箱に溜めて次の画面へ進む
+  （画面は Service Worker のキャッシュから出る）。戻ったら溜めた順に送る。
+  ひとつずつ op_id を振ってあるので、届いたのに応答が返らず再送しても二重にならない。
 
-   ライブラリは使わない。JavaScriptが動かない端末では、
-   従来どおり普通のフォーム送信として動く（オフライン対応だけが無くなる）。
-   ============================================================ */
+  JavaScript が動かない端末では普通のフォーム送信として動く（オフライン対応だけ無くなる）。
+*/
 (function () {
   'use strict';
 
   var DB_NAME = 'wcr';
   var DB_VER  = 1;
   var flushing = false;
-
-  /* ---------------- IndexedDB のごく薄い包み ---------------- */
 
   function openDb() {
     return new Promise(function (resolve, reject) {
@@ -76,8 +68,6 @@
     return Date.now().toString(16) + '-' + Math.random().toString(16).slice(2, 10);
   }
 
-  /* ---------------- ヘッダー下の状態帯 ---------------- */
-
   var bar  = document.getElementById('js-sync');
   var text = document.getElementById('js-sync-text');
   var push = document.getElementById('js-sync-push');
@@ -110,8 +100,6 @@
     }).catch(function () { paint(0); return 0; });
   }
 
-  /* ---------------- 送信箱 ---------------- */
-
   function enqueue(item) {
     return tx('outbox', 'readwrite', function (s) { s.add(item); });
   }
@@ -120,10 +108,6 @@
     return tx('outbox', 'readwrite', function (s) { s.delete(seq); });
   }
 
-  /**
-   * 溜めた操作を古い順に送る。
-   * CSRFトークンは時間が経つと変わるので、送る直前にその画面から取り直す。
-   */
   function flush() {
     if (flushing || !navigator.onLine) return Promise.resolve(false);
     flushing = true;
@@ -167,13 +151,10 @@
         });
       })
       .then(function (res) {
-        // 302を追った先が200、または「すでに処理済み」のJSONなら成功扱い
         return res.ok;
       })
       .catch(function () { return false; });
   }
-
-  /* ---------------- 画面の値を端末に控える ---------------- */
 
   var form = document.querySelector('form[data-offline]');
   var draftKey = null;
@@ -209,7 +190,6 @@
     }, 400);
   }
 
-  /** 未送信が残っているときだけ、端末の控えを画面に戻す */
   function hydrate(pending) {
     if (!form || !draftKey || pending <= 0) {
       if (draftKey) {
@@ -222,7 +202,6 @@
       if (!row) return;
       var params = new URLSearchParams(row.body);
 
-      // 同じ名前が複数あるもの（チェックボックス）は一度全部外してから戻す
       var multi = {};
       params.forEach(function (v, k) { multi[k] = (multi[k] || 0) + 1; });
 
@@ -253,8 +232,6 @@
     return s.replace(/(["\\])/g, '\\$1');
   }
 
-  /* ---------------- 送信の差し込み ---------------- */
-
   var lastSubmitter = null;
   document.addEventListener('click', function (ev) {
     var b = ev.target.closest ? ev.target.closest('button[type="submit"], input[type="submit"]') : null;
@@ -263,7 +240,6 @@
 
   if (form) {
     form.addEventListener('submit', function (ev) {
-      // 通信があるときは今までどおり、ブラウザに普通に送らせる
       if (navigator.onLine) return;
 
       var submitter = ev.submitter || lastSubmitter;
@@ -271,7 +247,6 @@
 
       ev.preventDefault();
 
-      // 検索・並べ替え・行追加・削除はサーバーに聞かないと結果が出せない
       if (name !== 'next' && name !== 'back') {
         notice('この操作は通信が戻ってからになります。入力した内容は端末に残っています。', 'warn');
         return;
@@ -299,8 +274,6 @@
     form.addEventListener('change', saveDraft);
   }
 
-  /* ---------------- お知らせ表示 ---------------- */
-
   function notice(message, kind) {
     var main = document.querySelector('.app-main');
     if (!main) return;
@@ -314,10 +287,6 @@
     box.textContent = message;
   }
 
-  /* ---------------- ウィザードの先読み ---------------- */
-
-  /* 2-1 を開いた時点で残りの画面を取っておく。
-     こうしておけば、途中で電波が切れても最後まで進める */
   function prefetchWizard() {
     if (!form || form.dataset.step !== 'basic' || !navigator.onLine) return;
     var id = form.dataset.report;
@@ -326,9 +295,6 @@
     });
   }
 
-  /* ---------------- 起動 ---------------- */
-
-  /* 部品が更新されると URL（?v=）が変わり、Service Worker も入れ替わる */
   if ('serviceWorker' in navigator) {
     var swUrl = document.body.getAttribute('data-sw') || '/sw.js';
     navigator.serviceWorker.register(swUrl).catch(function () {});
@@ -339,7 +305,6 @@
     flush().then(function (r) {
       if (r && r.left === 0) {
         notice('通信が回復し、溜めていた入力をサーバーへ送信しました。', 'info');
-        // サーバー側の値で描き直す
         setTimeout(function () { location.reload(); }, 900);
       }
     });
@@ -367,7 +332,6 @@
     prefetchWizard();
   });
 
-  /* ログアウトしたら、この端末に残っている控えとキャッシュを消す */
   var logoutForms = document.querySelectorAll('form[action="/logout"]');
   Array.prototype.forEach.call(logoutForms, function (f) {
     f.addEventListener('submit', function () {

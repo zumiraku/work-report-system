@@ -1,8 +1,4 @@
 <?php
-/**
- * K-3 ユーザー登録画面 ／ K-3-1 アカウント詳細修正ダイアログ
- * @var array $accounts @var array $pager @var string $sort @var string $dir @var array|null $dialog
- */
 $keep = [];
 $link = fn(string $key, string $label) =>
     admin_sort_link('/admin/users', $keep, $key, $label, $sort, $dir);

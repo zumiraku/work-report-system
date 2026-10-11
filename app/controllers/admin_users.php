@@ -1,10 +1,4 @@
 <?php
-/**
- * K-3 ユーザー登録画面 / K-3-1 アカウント詳細修正（追加登録）ダイアログ
- *
- * 概要書「アカウントIDは各作業人ではなく会社毎に発行する。発行管理は事務局で行う」
- * と、1-1「3回エラーでパスワードロック。解除は事務局で行う」がここに入る。
- */
 declare(strict_types=1);
 
 require_once APP_ROOT . '/app/controllers/admin_common.php';
@@ -16,7 +10,6 @@ const ADMIN_USER_SORTS = [
     'created' => 'created_at',
 ];
 
-/** K-3-1 の作業者欄は5つ（概要書の様式に合わせる） */
 const ADMIN_WORKER_SLOTS = 5;
 
 function admin_users(): void
@@ -34,7 +27,6 @@ function admin_users(): void
           LIMIT " . ADMIN_PER_PAGE . " OFFSET {$pager['offset']}"
     );
 
-    // 一覧に出す作業者1〜5
     foreach ($accounts as $i => $row) {
         $accounts[$i]['workers'] = array_column(Database::all(
             'SELECT name FROM workers WHERE account_id = ? AND deleted_at IS NULL
@@ -57,10 +49,6 @@ function admin_users(): void
     ], 'layout_admin');
 }
 
-/**
- * ダイアログに出す内容を用意する。
- * ?new=1 で追加、?edit=<id> で修正。どちらでもなければ出さない。
- */
 function admin_user_dialog(): ?array
 {
     $flash = $_SESSION['admin_user_form'] ?? null;
@@ -114,7 +102,6 @@ function admin_user_dialog(): ?array
     ];
 }
 
-/** 次のアカウントIDの候補。事務局が手で決めてもよい */
 function admin_suggest_login_id(): string
 {
     $last = (string) Database::value(
@@ -125,8 +112,6 @@ function admin_suggest_login_id(): string
     }
     return 'ABCDE0001';
 }
-
-// ---------------------------------------------------------------- 登録・修正
 
 function admin_users_save(): void
 {
@@ -151,7 +136,6 @@ function admin_users_save(): void
     ];
     $password = (string) post('password', '');
 
-    // ---- 確認 ----
     $errors = [];
     if ($form['account_id'] === '') {
         $errors['account_id'] = 'アカウントIDを入れてください。';
@@ -187,7 +171,6 @@ function admin_users_save(): void
         redirect('/admin/users?' . ($isNew ? 'new=1' : 'edit=' . $id));
     }
 
-    // ---- 保存 ----
     Database::transaction(function () use ($form, $password, $isNew, &$id) {
         $data = [
             'account_id'   => $form['account_id'],
@@ -197,7 +180,6 @@ function admin_users_save(): void
         ];
         if ($password !== '') {
             $data['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
-            // パスワードを出し直したらロックも解ける
             $data['is_locked']    = 0;
             $data['failed_count'] = 0;
             $data['locked_at']    = null;
@@ -217,10 +199,6 @@ function admin_users_save(): void
     redirect('/admin/users');
 }
 
-/**
- * 作業者1〜5を合わせる。
- * 空欄にしたら過去の報告書のために消さずに隠す（利用者側 5-2 と同じ扱い）。
- */
 function admin_sync_workers(int $accountId, array $names): void
 {
     $existing = Database::all(
@@ -257,7 +235,6 @@ function admin_sync_workers(int $accountId, array $names): void
     }
 }
 
-/** 1-1「3回エラーでパスワードロック。解除は事務局で行う」の解除 */
 function admin_users_unlock(): void
 {
     Auth::requireAdmin();

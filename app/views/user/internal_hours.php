@@ -1,14 +1,4 @@
 <?php
-/**
- * 4-4 社内用報告書作成 移動および作業時間の推移登録_画面
- *
- * 移動時間…I／作業時間…S（概要書の表記）。
- * 請求のもとになる数字なので、入れたその場で長さを出して
- * 打ち間違いに気づけるようにしている。
- *
- * @var array $report @var array $internal @var array $form @var array $errors
- * @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/internal_step_nav.php';
 ?>
 

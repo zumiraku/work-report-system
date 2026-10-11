@@ -1,14 +1,4 @@
 <?php
-/**
- * 4-3 社内用報告書作成 再手配の必要な部材登録_画面
- *
- * 概要書のとおり、交換した部品を初期値として並べてから直す。
- * マスタに無いものを足したいときのために、文字検索も付けている。
- *
- * @var array $report @var array $internal @var array $selected @var array $selectedIds
- * @var array $results @var int $total @var string $q
- * @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/internal_step_nav.php';
 ?>
 

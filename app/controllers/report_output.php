@@ -1,14 +1,5 @@
 <?php
-/**
- * 2-7 完了 / 2-8 プレビュー / 2-9 印刷 / 2-10 メール送信
- *
- * 画面で見る用紙（A4）は app/views/sheet/report.php、PDF は app/views/pdf/report.php。
- * 同じデータ（Report::sheetData）から作るので、画面と PDF の中身は常に一致する。
- * 保存・メール添付は必ず PDF（Pdf::forReport）で行う。
- */
 declare(strict_types=1);
-
-// ================================================================ 2-7 完了画面
 
 function report_done(array $p): void
 {
@@ -24,12 +15,6 @@ function report_done(array $p): void
     ], 'layout_user');
 }
 
-// ================================================================ 用紙そのもの
-
-/**
- * A4の中身。プレビュー・印刷の iframe から読み込まれる。
- * 直接開かれても困らないが、通常は 2-8 / 2-9 から見る。
- */
 function report_sheet(array $p): void
 {
     $user   = Auth::requireUser();
@@ -37,7 +22,6 @@ function report_sheet(array $p): void
 
     $data = Report::sheetData($report);
 
-    // 一覧の「PDF ●」は、提出用の紙が起こされたかどうかで決まる
     if (!$report['pdf_at']) {
         Report::touch((int) $report['id'], ['pdf_at' => now()]);
         $report['pdf_at'] = now();
@@ -50,14 +34,8 @@ function report_sheet(array $p): void
     ]);
 }
 
-// ================================================================ PDF
-
-/**
- * 本物のPDF。プレビューの「PDFで開く」「PDFを保存」、一覧の●、メール添付がこれ。
- *   /report/{id}/pdf        → ブラウザで表示
- *   /report/{id}/pdf?dl=1   → ファイルとして保存
- * 作るたびに data/pdf/report_{No}.pdf を最新の内容で書き換える。
- */
+// 一覧の●・プレビューの「PDFで開く」・メール添付が全部ここを通る。
+// ?dl=1 で保存。作るたび data/pdf/report_{No}.pdf を最新に書き換える。
 function report_pdf(array $p): void
 {
     $user   = Auth::requireUser();
@@ -76,8 +54,6 @@ function report_pdf(array $p): void
     Pdf::send($bytes, Pdf::fileName('report', $report), query('dl') === '1', Pdf::fileName('report', $report, true));
 }
 
-// ================================================================ 2-8 プレビュー
-
 function report_preview(array $p): void
 {
     $user   = Auth::requireUser();
@@ -90,8 +66,6 @@ function report_preview(array $p): void
     ]);
 }
 
-// ================================================================ 2-9 印刷
-
 function report_print(array $p): void
 {
     $user   = Auth::requireUser();
@@ -103,8 +77,6 @@ function report_print(array $p): void
         'title'  => '印刷',
     ]);
 }
-
-// ================================================================ 2-10 メール送信
 
 function report_mail(array $p): void
 {
@@ -138,7 +110,7 @@ function report_mail(array $p): void
         $errors = report_validate_mail($form);
 
         if (!$errors) {
-            // 送った内容の控えとして、PDFは日時付きで残す（後から「何を送ったか」を確かめられる）
+            // 送った控えは日時付きで残す。後から「何を送ったか」を確かめられるように
             $bytes = Pdf::forReport($report);
             $file  = Pdf::store($bytes, 'report', (int) $report['report_no'], true);
 
@@ -192,10 +164,6 @@ function report_mail(array $p): void
     ]);
 }
 
-/**
- * 送信先の形式だけは必ず見る（概要書 2-10-3「xxx@xxx.xx形式チェックはしたい」）。
- * CCは読点・カンマ・空白区切りで複数入れられる。
- */
 function report_validate_mail(array $f): array
 {
     $e = [];
@@ -225,7 +193,6 @@ function report_is_email(string $address): bool
     return (bool) filter_var($address, FILTER_VALIDATE_EMAIL);
 }
 
-/** @return string[] */
 function report_split_addresses(string $text): array
 {
     return array_values(array_filter(array_map(
@@ -234,7 +201,6 @@ function report_split_addresses(string $text): array
     ), fn($s) => $s !== ''));
 }
 
-/** 本文のたたき台。そのまま送っても失礼にならない文面にしておく */
 function report_mail_template(array $report, array $user): string
 {
     return implode("\n", [

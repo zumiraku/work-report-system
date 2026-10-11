@@ -1,20 +1,12 @@
 <?php
-/**
- * PNG の最小限の読み書き。サイン画像（透明背景の RGBA）を白地に合成して RGB にする。
- *
- * TCPDF は透明付きの PNG を扱うとき GD か Imagick を必要とする。
- * Vercel の PHP には GD が無く、さくらでも設定によっては外れていることがあるので、
- * 拡張に頼らず PHP だけで「透明を白に落とした PNG」を作れるようにしてある。
- * 対応するのはブラウザの canvas が作る形（8bit・非インターレース）。それ以外は null を返す。
- */
+// 透明付きPNGを白地に合成して RGB にする。
+// TCPDFは透明PNGを扱うのに GD か Imagick を要求するが、Vercelの PHP には GD が無い。
+// さくら側も設定次第なので、拡張に頼らず自前で潰しておく。
+// 相手はブラウザの canvas が吐くPNG（8bit・インターレース無し）だけ想定。
 declare(strict_types=1);
 
 final class Png
 {
-    /**
-     * 透明付き PNG を白地に合成した 8bit RGB の PNG にして返す。
-     * すでに透明の無い形式（RGB・グレー）ならそのまま返す。扱えない形式は null。
-     */
     public static function flattenToRgb(string $bytes): ?string
     {
         if (strncmp($bytes, "\x89PNG\r\n\x1a\n", 8) !== 0) {
@@ -43,9 +35,9 @@ final class Png
             return null;
         }
         if ($ihdr['color'] === 2 || $ihdr['color'] === 0) {
-            return $bytes;                       // 透明が無いのでそのまま使える
+            return $bytes;     // 透明が無いので触る必要なし
         }
-        $channels = ['4' => 2, '6' => 4][(string) $ihdr['color']] ?? 0;   // 4=グレー+α, 6=RGB+α
+        $channels = ['4' => 2, '6' => 4][(string) $ihdr['color']] ?? 0;   // 4=グレー+α 6=RGB+α
         if ($channels === 0) {
             return null;
         }
@@ -72,7 +64,7 @@ final class Png
             $line   = self::unfilter($filter, $line, $prev, $channels);
             $prev   = $line;
 
-            // 白地に合成して RGB にする（フィルタ 0）
+            // 白地に合成して RGB に。先頭の \0 は「フィルタ無し」の印
             $row = "\0";
             for ($x = 0; $x < $stride; $x += $channels) {
                 $a = ord($line[$x + $channels - 1]);
@@ -96,7 +88,7 @@ final class Png
             . self::chunk('IEND', '');
     }
 
-    /** PNG のフィルタ（None / Sub / Up / Average / Paeth）を元に戻す */
+    // PNGの行フィルタ（None/Sub/Up/Average/Paeth）を戻す
     private static function unfilter(int $type, string $line, string $prev, int $bpp): string
     {
         if ($type === 0) {

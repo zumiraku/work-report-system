@@ -1,8 +1,5 @@
-/* ============================================================
-   作業完了報告書SYSTEM / ユーザーサイト（タブレット 768 x 1024）
-   概要書の画面イメージ（緑ヘッダー・ステップ表示・大きめのボタン）に合わせている。
-   手袋をしたまま押せるよう、押せるものは最低 48px を確保する。
-   ============================================================ */
+/* ユーザーサイト（タブレット 768x1024）。
+   手袋のまま押せるよう、押せるものは最低 48px 確保する */
 
 :root {
   --brand:        #1b7a46;
@@ -39,12 +36,11 @@ html, body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 16px;               /* iOS の自動ズーム防止 */
+  font-size: 16px;
   line-height: 1.65;
   -webkit-text-size-adjust: 100%;
 }
 
-/* 幅768pxの実機に合わせ、PCで見たときも同じ幅で中央に出す */
 .viewport {
   width: 100%;
   max-width: 768px;
@@ -56,7 +52,6 @@ html, body {
   flex-direction: column;
 }
 
-/* ---------- ヘッダー ---------- */
 .app-header {
   position: sticky;
   top: 0;
@@ -85,7 +80,6 @@ html, body {
   cursor: pointer;
 }
 
-/* ---------- 同期ステータス（Phase 4） ---------- */
 .sync-bar {
   display: flex;
   align-items: center;
@@ -105,7 +99,6 @@ html, body {
 .sync-bar[data-state="offline"] { background: #fdecec; border-color: #eebcbc; color: var(--danger); }
 .sync-bar[data-state="offline"] .sync-dot { background: var(--danger); }
 
-/* ---------- 本文 ---------- */
 .app-main { flex: 1 1 auto; padding: 14px 16px 96px; }
 
 .page-title {
@@ -116,7 +109,6 @@ html, body {
   border-bottom: 2px solid var(--brand);
 }
 
-/* ---------- ステップ表示（[1 基本情報][2 作業内容]…） ---------- */
 .step-nav {
   margin: 0 0 14px;
   padding: 10px 6px;
@@ -132,7 +124,6 @@ html, body {
 .step-nav__item.is-current { color: var(--danger); font-weight: 700; }
 .step-nav__item.is-done    { color: var(--brand-dark); }
 
-/* ---------- フォーム ---------- */
 .form-row {
   display: flex;
   align-items: center;
@@ -170,7 +161,6 @@ html, body {
 .field-note { margin: 4px 0 0 102px; font-size: 13px; color: var(--ink-weak); }
 .field-error { margin: 4px 0 0 102px; font-size: 13px; color: var(--danger); }
 
-/* 数量の [-] 0 [+] */
 .counter { display: inline-flex; align-items: center; gap: 6px; }
 .counter__btn {
   width: 42px; height: 42px;
@@ -191,7 +181,6 @@ html, body {
 }
 .counter__unit { min-width: 22px; font-size: 14px; color: var(--ink-mid); }
 
-/* ---------- ボタン ---------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -219,7 +208,6 @@ html, body {
   background: #c8cfcb; color: #fff; border-color: #c8cfcb; cursor: not-allowed;
 }
 
-/* 画面下の ◀もどる ▶つぎへ */
 .nav-buttons {
   position: fixed;
   left: 50%;
@@ -259,7 +247,6 @@ html, body {
 .nav-btn[disabled] { border-color: #c8cfcb; color: #9aa39e; }
 .nav-btn[disabled] .nav-btn__mark { color: #9aa39e; }
 
-/* ---------- カード・リスト ---------- */
 .card {
   background: #fff;
   border: 1px solid var(--line);
@@ -291,7 +278,6 @@ html, body {
 .menu-list a:active { background: var(--brand-tint); }
 .menu-list small { display: block; color: var(--ink-weak); font-size: 12.5px; }
 
-/* ---------- テーブル（報告書一覧など） ---------- */
 .table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .table th {
   background: var(--brand);
@@ -312,7 +298,6 @@ html, body {
 .table .num { text-align: right; font-variant-numeric: tabular-nums; }
 .table .center { text-align: center; }
 
-/* ---------- 注意書き・メッセージ ---------- */
 .alert {
   padding: 10px 12px;
   margin-bottom: 12px;
@@ -326,7 +311,6 @@ html, body {
 
 .notice-red { color: var(--danger); font-weight: 700; font-size: 14px; }
 
-/* ---------- チェックリスト（2-5） ---------- */
 .check-list { list-style: none; margin: 8px 0 0; padding: 0; }
 .check-list li { border-bottom: 1px solid var(--line); }
 .check-list label {
@@ -342,7 +326,6 @@ html, body {
   width: 26px; height: 26px; margin: 2px 0 0; flex: none; accent-color: var(--brand);
 }
 
-/* ---------- 署名（2-5 / 2-6） ---------- */
 .sig-frame {
   border: 2px dashed #4a4a4a;
   border-radius: 4px;
@@ -354,7 +337,6 @@ html, body {
 }
 .sig-frame img { max-width: 100%; max-height: 100%; }
 
-/* ---------- マイク入力 ---------- */
 .mic-btn {
   flex: none;
   width: 46px; height: 46px;
@@ -380,7 +362,6 @@ html, body {
   .mic-btn.is-recording { animation: none; }
 }
 
-/* テキストエリアの上に置くマイクの行 */
 .mic-bar { display: flex; align-items: center; gap: 9px; margin: 0 0 6px; }
 .mic-bar__hint { font-size: 12.5px; color: var(--ink-weak); }
 
@@ -390,7 +371,6 @@ html, body {
   color: var(--brand-dark);
 }
 
-/* ---------- 同期ステータスの「今すぐ送信」 ---------- */
 .sync-bar__push {
   margin-left: auto;
   min-height: 30px;
@@ -406,11 +386,9 @@ html, body {
 }
 .sync-bar__push[disabled] { opacity: .55; cursor: default; }
 
-/* ---------- ページャ ---------- */
 .pager { display: flex; align-items: center; justify-content: flex-end; gap: 12px; font-size: 14px; margin: 10px 0; }
 .pager a, .pager span { min-width: 40px; text-align: center; }
 
-/* ---------- 数量リスト（2-2 / 2-3） ---------- */
 .qty-list { list-style: none; margin: 0 0 14px; padding: 0; }
 .qty-row {
   display: flex;
@@ -453,12 +431,10 @@ html, body {
   font-size: 14px;
 }
 
-/* ---------- 検索バー（2-3） ---------- */
 .search-bar { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
 .search-bar .input { flex: 1 1 auto; min-height: 44px; }
 .search-bar .btn { flex: none; white-space: nowrap; }
 
-/* ---------- 測定値カード（2-4） ---------- */
 .measure-card {
   position: relative;
   border: 1px solid var(--line);
@@ -514,9 +490,6 @@ html, body {
   color: var(--ink);
 }
 
-/* ---------- 作業者の名簿（2-1 / 2-5） ----------
-   「選択」ボタンで開かせず、名前を出しっぱなしにする。
-   現場でのタップを1回減らすため。名前そのものが押せるボタンになっている。 */
 .field-block { margin-bottom: 16px; }
 
 .picker__names {
@@ -533,7 +506,7 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;          /* 手袋のままでも押せる大きさ */
+  min-height: 48px;
   min-width: 104px;
   padding: 0 16px;
   border: 1px solid #7e8b84;
@@ -545,7 +518,6 @@ html, body {
   user-select: none;
   transition: background .12s, border-color .12s;
 }
-/* チェックボックスそのものは隠し、名前の見た目で選択を表す */
 .pick-chip input { position: absolute; opacity: 0; width: 0; height: 0; }
 .pick-chip span { pointer-events: none; }
 
@@ -565,7 +537,6 @@ html, body {
   cursor: not-allowed;
 }
 
-/* :has() が使えない古いブラウザ向け。チェック印を出して選択が分かるようにする */
 @supports not (selector(:has(*))) {
   .pick-chip input { position: static; opacity: 1; width: 20px; height: 20px; margin-right: 8px; }
 }
@@ -589,7 +560,6 @@ html, body {
   color: var(--warn);
 }
 .picker.is-locked .picker__free .input { background: #f1f3f2; }
-/* ---------- 署名（2-5 / 2-6） ---------- */
 .sign-block { margin-bottom: 4px; text-align: center; }
 .dow-badge { flex: none; font-size: 13px; color: var(--brand-dark); white-space: nowrap; }
 
@@ -607,7 +577,7 @@ html, body {
   display: block;
   width: 100%;
   height: 100%;
-  touch-action: none;          /* 書いている最中に画面が動かないように */
+  touch-action: none;
   cursor: crosshair;
 }
 .sign-canvas__hint {
@@ -629,7 +599,6 @@ html, body {
 .sign-actions .btn { min-width: 96px; }
 .sign-note { margin-top: 18px; font-size: 13px; line-height: 1.8; color: var(--ink-weak); }
 
-/* ---------- 一覧・マイページ共通の帯（3 / 5-2 / 5-3） ---------- */
 .list-bar {
   display: flex;
   align-items: center;
@@ -647,8 +616,6 @@ html, body {
 .pager a, .pager span { min-width: 32px; text-align: center; }
 .pager a { color: var(--brand-dark); text-decoration: none; font-size: 17px; }
 
-/* ---------- 報告書一覧（3） ---------- */
-/* 幅768pxに9列を詰めるので、はみ出す分だけ横に振れるようにしておく */
 .list-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .list-table { font-size: 12.5px; table-layout: fixed; min-width: 704px; }
@@ -669,7 +636,7 @@ html, body {
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;      /* 概要書 3-10「病院名は一行で表示したい」 */
+  white-space: nowrap;
 }
 .list-table .c-mark a { color: var(--brand-dark); font-size: 15px; text-decoration: none; }
 
@@ -686,7 +653,6 @@ html, body {
 }
 .list-copy:active { background: var(--brand-tint); }
 
-/* ---------- マイページの編集表（5-2 / 5-3） ---------- */
 .edit-table { font-size: 13px; }
 .edit-table th, .edit-table td { padding: 7px 6px; }
 .edit-table th a { color: #fff; text-decoration: none; white-space: nowrap; }
@@ -730,9 +696,7 @@ html, body {
   font-size: 13.5px;
 }
 
-/* ---------- 用紙を見せる画面（2-8 / 2-9 / 2-10） ---------- */
 .paper-page { background: #6d7570; }
-/* A4（210mm）が収まる幅にする。タブレットでは横幅いっぱい */
 .viewport--wide { max-width: 900px; }
 
 .app-header__close {
@@ -779,13 +743,11 @@ html, body {
 }
 .paper-frame--thumb { min-height: 520px; }
 
-/* 幅の狭い端末では縦に積む */
 @media (max-width: 720px) {
   .mail-layout { flex-direction: column; }
   .paper-frame--thumb { min-height: 380px; }
 }
 
-/* 「送信しました」のダイアログ（2-10-7） */
 .dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -820,7 +782,6 @@ html, body {
   color: var(--ink-weak);
 }
 
-/* まだ作っていない画面へのボタン */
 .nav-btn.is-pending {
   border-color: #c8cfcb;
   color: #9aa39e;
@@ -828,7 +789,6 @@ html, body {
 }
 .nav-btn.is-pending .nav-btn__mark { color: #c2c9c5; }
 
-/* ---------- ログイン画面（1-1） ---------- */
 .login-panel {
   margin: 56px auto 0;
   max-width: 400px;
@@ -873,7 +833,6 @@ html, body {
   color: var(--ink-weak);
 }
 
-/* ---------- ダッシュボード ---------- */
 .dash-greeting {
   padding: 10px 12px;
   margin-bottom: 6px;
@@ -885,7 +844,6 @@ html, body {
 }
 .dash-greeting small { font-weight: 400; font-size: 12.5px; }
 
-/* ---------- 開発用インデックス ---------- */
 .dev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .dev-stat { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; background: #fff; }
 .dev-stat b { display: block; font-size: 20px; color: var(--brand-dark); font-variant-numeric: tabular-nums; }
@@ -895,7 +853,6 @@ html, body {
 .muted { color: var(--ink-weak); }
 .mt0 { margin-top: 0; } .mb0 { margin-bottom: 0; }
 
-/* ---------- 社内用報告書（4-1〜4-6） ---------- */
 .step-nav--internal { font-size: 12px; line-height: 2; }
 
 .hours-legend {
@@ -930,7 +887,6 @@ html, body {
 .hours-total { margin-top: 18px; max-width: 360px; }
 .hours-total th { width: 55%; }
 
-/* 4-6 の「完了」ボタンとアラート */
 .nav-btn--done {
   border-color: var(--danger);
   color: var(--danger);

@@ -1,10 +1,4 @@
 <?php
-/**
- * 4-7 社内用報告書 プレビュー画面 ／ 4-8 印刷_画面
- *
- * @var array  $report
- * @var string $mode  preview|print
- */
 $id      = (int) $report['id'];
 $isPrint = $mode === 'print';
 $src     = "/report/{$id}/internal/sheet" . ($isPrint ? '?print=1' : '');

@@ -1,13 +1,4 @@
 <?php
-/**
- * 2-8 プレビュー_画面 ／ 2-9 印刷_画面
- *
- * どちらも中身は同じA4の紙で、印刷のときだけ開いた直後に
- * ブラウザの印刷ダイアログを出す（概要書 2-9-1）。
- *
- * @var array  $report
- * @var string $mode  preview|print
- */
 $id      = (int) $report['id'];
 $isPrint = $mode === 'print';
 $src     = "/report/{$id}/sheet" . ($isPrint ? '?print=1' : '');

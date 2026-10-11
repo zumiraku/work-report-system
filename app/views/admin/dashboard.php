@@ -1,9 +1,4 @@
 <?php
-/**
- * K-2 ダッシュボード画面
- * @var array $rows @var array $pager @var string $q @var string $sort @var string $dir
- * @var array $stats
- */
 $keep = ['q' => $q];
 $link = fn(string $key, string $label) =>
     admin_sort_link('/admin/dashboard', $keep, $key, $label, $sort, $dir);

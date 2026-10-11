@@ -1,11 +1,4 @@
 <?php
-/**
- * 4-1 社内用報告書作成 基本情報登録_画面
- * 客先に出した内容を写して表示し、ここで直せる。
- *
- * @var array $report @var array $internal @var array $form @var array $errors
- * @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/internal_step_nav.php';
 $labels = [
     'created_date'  => ['作成日',   'date'],

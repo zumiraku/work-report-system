@@ -1,7 +1,4 @@
 <?php
-/**
- * 1-1 ログイン画面 / ログアウト
- */
 declare(strict_types=1);
 
 function login_page(): void
@@ -10,7 +7,6 @@ function login_page(): void
         redirect('/dashboard');
     }
 
-    // 「ユーザーID,パスワードを保持」にチェックしてあった端末は、ここで通す
     if (Auth::tryRemember('user')) {
         redirect('/dashboard');
     }
@@ -52,10 +48,6 @@ function logout_action(): void
     redirect('/login');
 }
 
-/**
- * アカウント単位の3回ロックとは別に、同一IPからの総当たりを抑える。
- * 会社共用IDなので、正規の利用者がロックされ続けないようこちらは時間で自動解除する。
- */
 function login_ip_blocked(int $limit = 10, int $minutes = 10): bool
 {
     $since = date('Y-m-d H:i:s', time() - $minutes * 60);

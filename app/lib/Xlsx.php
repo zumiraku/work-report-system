@@ -1,27 +1,11 @@
 <?php
-/**
- * Excel（.xlsx）の読み書き。K-4 交換部品マスタのダウンロード／インポートで使う。
- *
- * .xlsx は「決まった形の XML をまとめた ZIP」なので、PhpSpreadsheet のような
- * 大きなライブラリを入れなくても PHP の zip 拡張だけで扱える
- * （さくらのレンタルサーバは Composer が使えないため、依存を足さない方針）。
- *
- * 書き出しは1シート・文字列と数値だけの素直な表。
- * 読み込みは Excel が保存した .xlsx（共有文字列・インライン文字列・数値・数式の結果）に対応する。
- */
+// .xlsx の読み書き。中身は決まった形のXMLを集めたZIPなので、zip拡張だけで足りる。
+// さくらは Composer が使えず PhpSpreadsheet を置けないため自前。
+// 書き出しは1シート・文字列と数値だけ。読み込みは Excel が保存したものに合わせてある。
 declare(strict_types=1);
 
 final class Xlsx
 {
-    // ================================================================ 書く
-
-    /**
-     * 1シートの .xlsx をバイト列で返す。
-     *
-     * @param string[]      $header 1行目の見出し
-     * @param array<array>  $rows   2行目以降。数値は数値セル、それ以外は文字列セルになる
-     * @param int[]         $widths 列幅（文字数の目安）。省略時は見出しから決める
-     */
     public static function write(array $header, array $rows, string $sheetName = 'Sheet1', array $widths = []): string
     {
         $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
@@ -46,16 +30,14 @@ final class Xlsx
 
     private static function sheet(array $header, array $rows, array $widths): string
     {
-        // 要素の並び順は決まっている：sheetViews → sheetFormatPr → cols → sheetData → autoFilter
+        // 要素の順番は決まっている。sheetViews → sheetFormatPr → cols → sheetData → autoFilter
         $x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
            . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-           // 1行目を固定して、スクロールしても見出しが残るようにする
            . '<sheetViews><sheetView workbookViewId="0">'
            . '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>'
            . '</sheetView></sheetViews>'
            . '<sheetFormatPr defaultRowHeight="18"/>';
 
-        // 列幅。指定が無ければ見出しの長さ＋余白
         $x .= '<cols>';
         foreach (array_values($header) as $i => $h) {
             $w = $widths[$i] ?? max(10, mb_strwidth((string) $h) + 6);
@@ -63,13 +45,12 @@ final class Xlsx
         }
         $x .= '</cols><sheetData>';
 
-        $x .= self::row(1, array_values($header), 1);   // 見出しは太字スタイル(1)
+        $x .= self::row(1, array_values($header), 1);
         $n  = 1;
         foreach ($rows as $row) {
             $x .= self::row(++$n, array_values($row), 0);
         }
 
-        // 見出しにフィルタの▼を付けておく（エクセルで絞り込みやすい）
         return $x . '</sheetData>'
             . '<autoFilter ref="A1:' . self::col(count($header)) . $n . '"/>'
             . '</worksheet>';
@@ -92,7 +73,6 @@ final class Xlsx
         return $x . '</row>';
     }
 
-    /** 1 → A, 27 → AA */
     public static function col(int $n): string
     {
         $s = '';
@@ -104,7 +84,6 @@ final class Xlsx
         return $s;
     }
 
-    /** A → 1, AA → 27 */
     public static function colIndex(string $letters): int
     {
         $n = 0;
@@ -116,7 +95,6 @@ final class Xlsx
 
     private static function esc(string $s): string
     {
-        // XML で使えない制御文字は落とす
         $s = (string) preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $s);
         return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
@@ -158,7 +136,6 @@ final class Xlsx
             . '</Relationships>';
     }
 
-    /** スタイル 0＝通常、1＝見出し（太字・薄い背景） */
     private static function styles(): string
     {
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -174,9 +151,6 @@ final class Xlsx
             . '</styleSheet>';
     }
 
-    // ================================================================ 読む
-
-    /** 先頭2バイトが PK なら zip（＝.xlsx）とみなす */
     public static function looksLike(string $path): bool
     {
         $fh = @fopen($path, 'rb');
@@ -188,15 +162,8 @@ final class Xlsx
         return $head === 'PK';
     }
 
-    /**
-     * 最初のシートを、行ごとの文字列の配列にして返す。
-     * 空セルは '' で埋め、右端の空セルは落とす。
-     *
-     * 1万行の部品マスタでも数秒で読めるよう、DOM に全部載せずに
-     * XMLReader で頭から順に流し読みする。
-     *
-     * @return string[][]
-     */
+    // 先頭シートを行ごとの文字列配列にする。
+    // 1万行の部品マスタでも待たされないよう、DOMに全部載せず XMLReader で流し読みする。
     public static function read(string $path): array
     {
         $zip = new ZipArchive();
@@ -235,8 +202,7 @@ final class Xlsx
             if ($line !== []) {
                 $rows[$r > 0 ? $r : count($rows) + 1] = $line;
             }
-            // 子要素はもう見たので、read() ではなく next() で次の row へ飛ぶ
-            $more = $reader->next();
+            $more = $reader->next();   // 子は expand() で見たので read() ではなく next()
         }
         $reader->close();
         libxml_clear_errors();
@@ -247,7 +213,6 @@ final class Xlsx
         return array_values($rows);
     }
 
-    /** <row> 1つ分を文字列の配列にする。抜けている列は '' で埋める */
     private static function rowValues(DOMElement $rowEl, array $shared): array
     {
         $cells = [];
@@ -291,7 +256,7 @@ final class Xlsx
             }
             if ($child->localName === 'v') {
                 $v = $child->textContent;
-            } elseif ($child->localName === 'is') {        // インライン文字列 <is><t>…</t></is>
+            } elseif ($child->localName === 'is') {
                 $text .= $child->textContent;
             }
         }
@@ -309,14 +274,13 @@ final class Xlsx
             return $v === '1' ? 'TRUE' : 'FALSE';
         }
         if (($type === '' || $type === 'n') && is_numeric($v)) {
-            // 1.0E+3 のような指数表記や 12.0 を、見た目どおりの数字に戻す
             $f = (float) $v;
             if (floor($f) == $f && abs($f) < 1e15) {
                 return (string) (int) $f;
             }
             return rtrim(rtrim(sprintf('%.10F', $f), '0'), '.');
         }
-        return $v;   // str（数式の結果）など
+        return $v;
     }
 
     private static function firstSheetPath(ZipArchive $zip): string
@@ -336,7 +300,6 @@ final class Xlsx
 
         $relDoc = self::parse($rels);
         foreach ($relDoc->getElementsByTagNameNS('http://schemas.openxmlformats.org/package/2006/relationships', 'Relationship') as $rel) {
-            /** @var DOMElement $rel */
             if ($rel->getAttribute('Id') === $rid) {
                 $target = $rel->getAttribute('Target');
                 return str_starts_with($target, '/') ? ltrim($target, '/') : 'xl/' . $target;
@@ -345,7 +308,6 @@ final class Xlsx
         return 'xl/worksheets/sheet1.xml';
     }
 
-    /** @return string[] */
     private static function sharedStrings(ZipArchive $zip): array
     {
         $xml = $zip->getFromName('xl/sharedStrings.xml');
@@ -364,7 +326,6 @@ final class Xlsx
                     continue;
                 }
                 $node = $reader->expand();
-                // 書式付き文字列は <r><t> が複数並ぶので、<t> をすべてつなぐ
                 $text = '';
                 if ($node instanceof DOMElement) {
                     foreach ($node->getElementsByTagName('t') as $t) {
@@ -381,11 +342,11 @@ final class Xlsx
 
         return $out;
     }
+    // NOENT は付けない（外部実体を展開させない）。NONET でネットワークも切る
     private static function parse(string $xml): DOMDocument
     {
         $doc  = new DOMDocument();
         $prev = libxml_use_internal_errors(true);
-        // 外部実体は展開しない（XXE 対策。NOENT を付けないのが既定）。NONET でネットワークも切る
         $ok = $doc->loadXML($xml, LIBXML_NONET);
         libxml_clear_errors();
         libxml_use_internal_errors($prev);

@@ -1,13 +1,7 @@
 <?php
-/**
- * スキーマ作成 / デモデータ投入
- *
- *   php tools/migrate.php --fresh --seed   テーブルを作り直してデモデータを入れる
- *   php tools/migrate.php --seed           デモデータだけ入れ直す
- *
- * schema.sql 内の {{PK}} / {{TAIL}} をドライバに応じて置換するので、
- * ローカル(SQLite)と本番(MySQL)で同じ定義ファイルを使える。
- */
+// php tools/migrate.php --fresh --seed  でテーブルを作り直してデモデータを入れる。
+// schema.sql の {{PK}} / {{TAIL}} をドライバに応じて置き換えるので、
+// ローカル(SQLite)と本番(MySQL)で同じ定義ファイルが使える。
 declare(strict_types=1);
 
 if (PHP_SAPI !== 'cli') {
@@ -68,7 +62,7 @@ if ($fresh) {
         $sql = str_replace(['{{PK}}', '{{TAIL}}'], ['INTEGER PRIMARY KEY AUTOINCREMENT', ''], $sql);
     }
 
-    // コメント行を落としてから文単位に分割する
+    // コメント行を落としてから文単位に割る（-- で始まる行が区切りを邪魔するため）
     $sql = preg_replace('/^\s*--.*$/m', '', $sql);
 
     $count = 0;

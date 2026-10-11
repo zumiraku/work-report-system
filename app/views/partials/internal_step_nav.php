@@ -1,13 +1,4 @@
 <?php
-/**
- * 社内用報告書のステップ表示。
- * ［1 基本情報］［2 今回作業時の残作業］［3.再手配の必要な部材］
- * ［4 移動および作業時間の推移］［5 客先への営業アプローチ］［6.備考（社内への報告事項等）］
- *
- * 6は5と同じ画面なので、5が現在地のときは一緒に赤くする。
- *
- * @var array $report @var string $step @var array $progress
- */
 $id = (int) $report['id'];
 ?>
 <nav class="step-nav step-nav--internal">

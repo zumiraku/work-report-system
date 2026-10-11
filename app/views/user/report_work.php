@@ -1,11 +1,4 @@
 <?php
-/**
- * 2-2 作業内容登録_画面
- * 作業対象の機種と台数を入れる。対象外の機種は削除して一覧から外す。
- *
- * @var array $report @var array $rows @var array $available @var array $usedIds
- * @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/step_nav.php';
 $notAdded = array_filter($available, fn($m) => !in_array((int) $m['id'], $usedIds, true));
 ?>

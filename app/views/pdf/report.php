@@ -1,15 +1,7 @@
 <?php
-/**
- * 作業完了報告書（客先提出用）のPDF型紙。概要書 2-8 のプレビュー画像を再現。
- *
- * TCPDF の writeHTML に渡すので、CSSの flex や grid は使えない。
- * 表（table）と幅の指定だけで組んでいる。
- *
- * @var array  $report @var array $models @var array $parts @var array $measurements
- * @var string $density d1|d2|d3   @var string $signatureData  サイン画像の data: URI（無ければ ''）
- */
+// TCPDF の writeHTML に渡す型紙。flex も grid も効かないので table と幅指定だけで組む。
 $r  = $report;
-$fs = ['d1' => 10.5, 'd2' => 9.5, 'd3' => 8.5][$density] ?? 10;   // pt
+$fs = ['d1' => 10.5, 'd2' => 9.5, 'd3' => 8.5][$density] ?? 10;
 $sm = round($fs * 0.85, 1);
 
 $workDate = ymd_ja((string) $r['work_date'], false);

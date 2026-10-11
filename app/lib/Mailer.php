@@ -1,22 +1,10 @@
 <?php
-/**
- * メール送信（2-10）。PDFを添付して PHP の mail() で送る。
- *
- * さくらのレンタルサーバでは mail() がそのまま sendmail 経由で配信されるので、
- * 外部ライブラリ（PHPMailer 等）は使っていない。MIME の組み立てはここで行う。
- *
- * config('mail.dry_run') が true のときは配信せず、送るはずだった内容を
- * .eml ファイルとして data/tmp に残す（Outlook 等で開いて確認できる）。
- */
+// メール送信。さくらは mail() がそのまま sendmail に流れるので、PHPMailer等は入れずに
+// MIME だけ自前で組んでいる。dry_run の間は送らず .eml を data/tmp/mail に残す。
 declare(strict_types=1);
 
 final class Mailer
 {
-    /**
-     * @param array $msg  to, cc(配列), reply_to, subject, body,
-     *                    attachments: [['name' => 'x.pdf', 'bytes' => '...', 'type' => 'application/pdf'], ...]
-     * @return string|null 送れたら null、失敗したら理由
-     */
     public static function send(array $msg): ?string
     {
         $mail = self::build($msg);
@@ -32,7 +20,6 @@ final class Mailer
             $mail['subject'],
             $mail['body'],
             $mail['headers'],
-            // Return-Path（配信エラーの戻り先）を差出人に揃える
             preg_match('/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$/', $from) ? '-f ' . $from : ''
         );
 
@@ -45,12 +32,6 @@ final class Mailer
         return null;
     }
 
-    /**
-     * mail() に渡す形（宛先・件名・本文・ヘッダ）に組み立てる。
-     * 送信はしない。dry_run の記録やテストでも使う。
-     *
-     * @return array{to:string, subject:string, body:string, headers:array<string,string>, raw:string}
-     */
     public static function build(array $msg): array
     {
         $boundary = '=_wcr_' . bin2hex(random_bytes(12));
@@ -71,7 +52,7 @@ final class Mailer
             $headers['Reply-To'] = self::address((string) $msg['reply_to']);
         }
 
-        // 本文（UTF-8 / base64。日本語を含んでも配信経路で化けない）
+        // 本文は base64。日本語が配信経路のどこかで化けるのを避ける
         $text = str_replace(["\r\n", "\r"], "\n", (string) ($msg['body'] ?? ''));
         $body = '--' . $boundary . $eol
             . 'Content-Type: text/plain; charset=UTF-8' . $eol
@@ -109,19 +90,16 @@ final class Mailer
         ];
     }
 
-    /** dry_run のときに、送るはずだった内容を .eml として残す */
     private static function keepCopy(array $mail): void
     {
         $dir = (string) config('storage.tmp') . '/mail';
         if (!is_dir($dir)) {
             @mkdir($dir, 0777, true);
         }
-        // .eml は CRLF 区切りが慣例
         $raw = (string) preg_replace('/\r?\n/', "\r\n", $mail['raw']);
         @file_put_contents($dir . '/' . date('Ymd_His') . '_' . bin2hex(random_bytes(3)) . '.eml', $raw);
     }
 
-    /** "名前 <addr>" の形。名前に日本語があれば RFC 2047 でくるむ */
     public static function address(string $address, string $name = ''): string
     {
         $address = trim($address);
@@ -133,11 +111,8 @@ final class Mailer
         return self::encodeWord($name) . ' <' . $address . '>';
     }
 
-    /**
-     * ヘッダに日本語を入れるための =?UTF-8?B?...?= 形式。
-     * ASCII だけならそのまま。長いときは文字の途中で切れないよう分割する
-     * （$fold = false のときは分割しない。引用符の中に入れる添付ファイル名用）。
-     */
+    // ヘッダ用の =?UTF-8?B?...?=。折り返しは CRLF+空白でないと mail() が通さない。
+    // $fold = false は引用符の中（添付ファイル名）用で、折り返さない。
     public static function encodeWord(string $s, bool $fold = true): string
     {
         if ($s === '' || !preg_match('/[^\x20-\x7E]/', $s)) {
@@ -150,7 +125,7 @@ final class Mailer
         $words = [];
         $chunk = '';
         foreach (preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
-            if (strlen($chunk . $ch) > 42) {          // base64 後に 75 文字以内に収まる
+            if (strlen($chunk . $ch) > 42) {
                 $words[] = '=?UTF-8?B?' . base64_encode($chunk) . '?=';
                 $chunk   = '';
             }
@@ -160,7 +135,6 @@ final class Mailer
             $words[] = '=?UTF-8?B?' . base64_encode($chunk) . '?=';
         }
 
-        // 折り返しは RFC 822 の CRLF + 空白。PHP の mail() はこの形だけを折り返しとして通す
         return implode("\r\n ", $words);
     }
 }

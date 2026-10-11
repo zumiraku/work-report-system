@@ -1,11 +1,4 @@
 <?php
-/**
- * 5-3 報告事項_登録画面
- * ここで登録した文章は、2-4 の「選択」から本文に差し込める。
- *
- * @var array $rows @var array $common @var int $total @var int $page @var int $pages
- * @var int $from @var int $to @var string $sort @var string $dir
- */
 $link = function (string $key, string $label) use ($sort, $dir) {
     $next = ($sort === $key && $dir === 'ASC') ? 'desc' : 'asc';
     $mark = $sort !== $key ? '▼' : ($dir === 'ASC' ? '▲' : '▼');

@@ -1,10 +1,4 @@
 <?php
-/**
- * K-2 管理者ダッシュボード
- *
- * 設備会社（事務局）が、協力会社から出てきた報告書をまとめて見る画面。
- * 概要書5の ⑦「ステータス完了の報告書を設備会社が内容を確認する」がここ。
- */
 declare(strict_types=1);
 
 require_once APP_ROOT . '/app/controllers/admin_common.php';
@@ -25,7 +19,6 @@ function admin_dashboard(): void
     $q = trim((string) query('q', ''));
     [$sort, $dir] = admin_sort(ADMIN_REPORT_SORTS, 'no');
 
-    // 病院名・作業件名・作業者・会社名・No. を横断して探す
     $where  = 'r.deleted_at IS NULL';
     $params = [];
     if ($q !== '') {
@@ -71,9 +64,6 @@ function admin_dashboard(): void
     ], 'layout_admin');
 }
 
-// ================================================================ 報告書の表示
-
-/** 客先提出用のA4（画面用HTML。印刷ダイアログ付きで開ける） */
 function admin_report_sheet(array $p): void
 {
     Auth::requireAdmin();
@@ -88,7 +78,6 @@ function admin_report_sheet(array $p): void
     ]);
 }
 
-/** 社内用のA4（画面用HTML） */
 function admin_internal_sheet(array $p): void
 {
     Auth::requireAdmin();
@@ -106,7 +95,6 @@ function admin_internal_sheet(array $p): void
     ]);
 }
 
-/** 客先提出用のPDF（K-2 の「PDF ●」）。利用者が出すものと同じ1枚 */
 function admin_report_pdf(array $p): void
 {
     Auth::requireAdmin();
@@ -116,7 +104,6 @@ function admin_report_pdf(array $p): void
         Pdf::fileName('report', $report, true));
 }
 
-/** 社内用のPDF（K-2 の「社内用 ●」） */
 function admin_internal_pdf(array $p): void
 {
     Auth::requireAdmin();
@@ -132,7 +119,6 @@ function admin_internal_pdf(array $p): void
         Pdf::fileName('internal', $report, true));
 }
 
-/** サイン画像。管理者もログイン確認を通してから配信する */
 function admin_signature_image(array $p): void
 {
     Auth::requireAdmin();

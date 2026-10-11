@@ -1,8 +1,4 @@
-/* ============================================================
-   2-6 サイン入力
-   Pointer Events で書く。指・スタイラス・マウスを同じ扱いにでき、
-   手のひらが画面に触れても線にならないよう主ポインタだけを拾う。
-   ============================================================ */
+/* サイン欄。Pointer Events で指もペンも同じ扱いにする */
 (function () {
   'use strict';
 
@@ -17,7 +13,6 @@
 
   var ctx, drawing = false, dirty = false, activeId = null, last = null;
 
-  /* 端末の解像度に合わせて実ピクセルを確保する（線がにじまないように） */
   function setup() {
     var rect = canvas.getBoundingClientRect();
     var dpr  = window.devicePixelRatio || 1;
@@ -30,7 +25,7 @@
     ctx.scale(dpr, dpr);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, rect.width, rect.height);
-    ctx.lineWidth = 3.2;          /* 現場で見て分かる太さ */
+    ctx.lineWidth = 3.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#101820';
@@ -48,7 +43,7 @@
   }
 
   function start(ev) {
-    if (activeId !== null) return;            /* 2本目の指は無視する */
+    if (activeId !== null) return;
     if (ev.pointerType === 'touch' && !ev.isPrimary) return;
 
     activeId = ev.pointerId;
@@ -56,7 +51,6 @@
     last = pos(ev);
     canvas.setPointerCapture(ev.pointerId);
 
-    /* 点だけ打った場合も残るように */
     ctx.beginPath();
     ctx.arc(last.x, last.y, ctx.lineWidth / 2, 0, Math.PI * 2);
     ctx.fillStyle = ctx.strokeStyle;
@@ -110,7 +104,6 @@
     save.textContent = '保存中…';
   });
 
-  /* 端末を回したときも書いた線を保つ */
   var resizeTimer = null;
   window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);

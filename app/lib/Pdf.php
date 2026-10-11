@@ -1,21 +1,13 @@
 <?php
-/**
- * PDF の作成（概要書 9章「確定した報告書はPDF等で出力・保存」）。
- *
- * TCPDF 6 系を app/vendor/tcpdf に同梱している。Composer は使わない。
- * 日本語は IPAex ゴシック・明朝を埋め込む（IPAフォントライセンス、再配布可）ので、
- * 受け取った側の端末にフォントが無くても同じ見た目で開ける。
- *
- * 用紙の型紙は app/views/pdf/ にある。プレビュー・印刷・メール添付・保存の
- * すべてがこの1枚から作られるので、見た目がずれない。
- */
+// PDF の生成。TCPDF 6系を app/vendor に同梱している（Composerは使わない）。
+// IPAexゴシック・明朝を埋め込むので、受け取った側にフォントが無くても同じ見た目で開ける。
+// 型紙は app/views/pdf/。画面・印刷・メール添付・保存が全部この1枚から出る。
 declare(strict_types=1);
 
 final class Pdf
 {
     private static bool $booted = false;
 
-    /** TCPDF を読み込む。設定は外部ファイルではなくここで決める */
     private static function boot(): void
     {
         if (self::$booted) {
@@ -23,6 +15,7 @@ final class Pdf
         }
         self::$booted = true;
 
+        // tcpdf_config.php を読ませず、ここで定数を決めてしまう
         $base = APP_ROOT . '/app/vendor/tcpdf/';
         $defs = [
             'K_TCPDF_EXTERNAL_CONFIG'      => true,
@@ -70,10 +63,6 @@ final class Pdf
         require_once $base . 'tcpdf.php';
     }
 
-    /**
-     * 報告書1件からPDFを作る（データの取り出し込み）。
-     * 画面・印刷・メール添付・管理者画面のどこから呼んでも同じ1枚になる。
-     */
     public static function forReport(array $report): string
     {
         $signature = '';
@@ -87,16 +76,8 @@ final class Pdf
         return self::report(Report::sheetData($report), $signature);
     }
 
-    /**
-     * サイン画像（透明背景）を白地の PNG にして、data: URI で返す。
-     *
-     * ファイルの場所ではなく中身を渡すのは、TCPDF が「/」で始まる絶対パスに
-     * DOCUMENT_ROOT を勝手に足してしまい（Linux のサーバーで）画像を見失うため。
-     *
-     * TCPDF は透明付き PNG に GD か Imagick を要求するが、サーバーによっては無い。
-     * 先に PHP だけで白地に落とし（Png::flattenToRgb）、できなければ GD、
-     * それも無ければ元のファイルをそのまま渡す。結果は data/tmp に控えて使い回す。
-     */
+    // サイン画像は data: URI で渡す。
+    // パスで渡すと TCPDF が「/」始まりに DOCUMENT_ROOT を足してしまい、Linux上で画像を見失う。
     private static function signatureDataUri(string $path): string
     {
         $dir = (string) config('storage.tmp') . '/sig';
@@ -127,7 +108,7 @@ final class Pdf
         }
 
         if ($bytes === null) {
-            $bytes = (string) file_get_contents($path);     // 最後の手段：そのまま渡す
+            $bytes = (string) file_get_contents($path);   // 最後の手段。そのまま渡す
         } else {
             @file_put_contents($flat, $bytes);
         }
@@ -135,16 +116,11 @@ final class Pdf
         return 'data:image/png;base64,' . base64_encode($bytes);
     }
 
-    /** 社内用1件からPDFを作る */
     public static function forInternal(array $report, array $internal): string
     {
         return self::internal(InternalReport::sheetData($internal) + ['report' => $report]);
     }
 
-    /**
-     * ブラウザに見せる・メールに添付するときのファイル名。No.が入っていれば取り違えない。
-     * $ascii = true は、日本語のファイル名を読めない古い環境向けの英数字だけの名前。
-     */
     public static function fileName(string $kind, array $report, bool $ascii = false): string
     {
         $no = (int) $report['report_no'];
@@ -157,10 +133,6 @@ final class Pdf
             : "作業完了報告書_No{$no}.pdf";
     }
 
-    /**
-     * 客先提出用の報告書（2-8）。
-     * @return string PDF のバイト列
-     */
     public static function report(array $data, string $signatureData = ''): string
     {
         $data['density']       = Report::sheetDensity($data);
@@ -169,9 +141,6 @@ final class Pdf
         return self::render('pdf/report', $data, '作業完了報告書 No.' . (int) $data['report']['report_no']);
     }
 
-    /**
-     * 社内用の報告書（4-7）。
-     */
     public static function internal(array $data): string
     {
         $in = $data['internal'];
@@ -185,9 +154,6 @@ final class Pdf
             '社内用 作業完了報告書 No.' . (int) $data['report']['report_no']);
     }
 
-    /**
-     * 型紙（app/views/pdf/*.php）を TCPDF に流し込んで1枚にする。
-     */
     private static function render(string $template, array $data, string $title): string
     {
         self::boot();
@@ -216,12 +182,6 @@ final class Pdf
         return $pdf->Output('', 'S');
     }
 
-    /**
-     * data/pdf に保存して、ファイル名を返す。
-     *
-     *   $keep = false … 最新版として上書き（report_1001.pdf）
-     *   $keep = true  … メールで送った分など、日時を付けてそのまま残す
-     */
     public static function store(string $bytes, string $prefix, int $reportNo, bool $keep = false): string
     {
         $dir = (string) config('storage.pdf');
@@ -239,7 +199,6 @@ final class Pdf
         return $name;
     }
 
-    /** 保存済みPDFのフルパス。無ければ null */
     public static function path(?string $name): ?string
     {
         if ($name === null || $name === '' || basename($name) !== $name) {
@@ -250,10 +209,6 @@ final class Pdf
         return is_file($path) ? $path : null;
     }
 
-    /**
-     * ブラウザへ返す。$download が true なら「保存」の挙動、false なら画面に表示。
-     * $ascii は日本語名を読めない環境向けの予備の名前（省略時は英数字だけ残した名前）。
-     */
     public static function send(string $bytes, string $filename, bool $download, string $ascii = ''): void
     {
         if ($ascii === '') {
@@ -277,7 +232,6 @@ final class Pdf
         exit;
     }
 
-    /** TCPDF に渡すHTMLの中で、改行を <br> にしてエスケープする */
     public static function text(?string $s): string
     {
         return nl2br(htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), false);

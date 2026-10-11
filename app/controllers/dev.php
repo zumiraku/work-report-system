@@ -1,8 +1,4 @@
 <?php
-/**
- * 開発中の進捗確認用インデックス（config.debug = true のときだけ有効）
- * 概要書の画面番号をそのまま並べて、どこまで組めたかが一目で分かるようにしている。
- */
 declare(strict_types=1);
 
 function dev_index(): void
@@ -22,12 +18,10 @@ function dev_index(): void
         $counts[$label] = (int) Database::value("SELECT COUNT(*) FROM {$table}");
     }
 
-    // 出力系のリンク先に使う、いちばん新しい報告書
     $latest = (int) Database::value(
         "SELECT id FROM reports WHERE deleted_at IS NULL ORDER BY report_no DESC LIMIT 1"
     );
 
-    // [概要書の番号, 画面名, URL, フェーズ]
     $screens = [
         ['1-1',  'ログイン',                 '/login',            2],
         ['1-2',  'ダッシュボード',           '/dashboard',        2],
@@ -60,7 +54,7 @@ function dev_index(): void
         ['K-7',  '管理者情報',               '/admin/profile',    8],
     ];
 
-    $donePhase = 9;   // 完了しているフェーズ番号
+    $donePhase = 9;
 
     view('partials/dev_index', [
         'counts'    => $counts,

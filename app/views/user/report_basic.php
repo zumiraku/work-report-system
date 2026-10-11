@@ -1,9 +1,4 @@
 <?php
-/**
- * 2-1 基本情報登録_画面
- * @var array $report @var array $form @var array $errors @var array $workers
- * @var string $step @var array $progress
- */
 require APP_ROOT . '/app/views/partials/step_nav.php';
 ?>
 

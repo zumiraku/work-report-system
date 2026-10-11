@@ -1,7 +1,4 @@
 <?php
-/**
- * 起動処理。index.php から最初に読まれる。
- */
 declare(strict_types=1);
 
 mb_internal_encoding('UTF-8');
@@ -27,21 +24,17 @@ if (config('debug')) {
     error_reporting(E_ALL & ~E_DEPRECATED);
 }
 
-// ---- セッション -------------------------------------------------
 session_name(config('session_name'));
 session_set_cookie_params([
     'httponly' => true,
     'samesite' => 'Lax',
-    // 本番（HTTPS）では true。さくらは共有SSLでもhttpsが使える
     'secure'   => (($_SERVER['HTTPS'] ?? '') === 'on'),
     'lifetime' => 0,
 ]);
 session_start();
 
-// ---- DB ---------------------------------------------------------
 Database::boot(config());
 
-// ---- 共通レスポンスヘッダ ---------------------------------------
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: same-origin');

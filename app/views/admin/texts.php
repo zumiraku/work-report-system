@@ -1,9 +1,4 @@
 <?php
-/**
- * K-6 報告事項マスター 登録画面 ／ 修正ダイアログ
- * @var array $rows @var int $ownCount @var array $pager @var string $sort @var string $dir
- * @var array|null $dialog @var array|null $notice
- */
 $link = fn(string $key, string $label) =>
     admin_sort_link('/admin/texts', [], $key, $label, $sort, $dir);
 $page = fn(int $p) =>
